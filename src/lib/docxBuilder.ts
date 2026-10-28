@@ -92,7 +92,7 @@ function span3Numbered(text: string): TableRow {
   });
 }
 
-export async function exportDocx(r: ChangeRequest): Promise<void> {
+export async function buildDocxBlob(r: ChangeRequest): Promise<Blob> {
   const gitLines = [
     r.repoUrl,
     r.mrUrl && r.mrIid ? `${r.mrUrl} (${r.mrIid})` : r.mrUrl || r.mrIid,
@@ -302,5 +302,10 @@ export async function exportDocx(r: ChangeRequest): Promise<void> {
     ],
   });
   const blob = await Packer.toBlob(doc);
+  return blob;
+}
+
+export async function exportDocx(r: ChangeRequest): Promise<void> {
+  const blob = await buildDocxBlob(r);
   saveAs(blob, `${r.id}.docx`);
 }

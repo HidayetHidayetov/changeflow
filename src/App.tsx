@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { emptyRequest, validate, type ChangeRequest } from './types';
 import { loadConfig, nextId, peekNextId, projectCode, saveConfig, saveToHistory, listHistory, loadDoc } from './lib/store';
-import { exportDocx } from './lib/docxBuilder';
-import { fetchMR, loadGitLabConfig } from './lib/gitlab';
+import { fetchMR, loadGitLabConfig, saveGitLabConfig } from './lib/gitlab';
+import { isDesktop } from './lib/secrets';
 import Settings from './components/Settings';
 import { loadLang, saveLang, t, type Lang } from './lib/i18n';
 
@@ -37,6 +37,7 @@ export default function App() {
   const [appVersion, setAppVersion] = useState('');
   const [updateInfo, setUpdateInfo] = useState<{ version: string; body?: string } | null>(null);
   const [updateMsg, setUpdateMsg] = useState('');
+  const [toast, setToast] = useState<{ path?: string } | null>(null);
   const orgLogo = useMemo(() => cfg.logoDataUrl || '/logo-gold.svg', [cfg.logoDataUrl]);
 
   const runUpdateCheck = async (silent: boolean) => {
@@ -137,7 +138,53 @@ export default function App() {
     if (!doValidate()) return;
     saveToHistory(form.id, form);
     setHistory(listHistory());
+    if (isDesktop()) {
+      try {
+        const { buildDocxBlob } = await import('./lib/docxBuilder');
+        const blob = await buildDocxBlob(form);
+        const { save } = await import('@tauri-apps/plugin-dialog');
+        const path = await save({
+          defaultPath: `${form.id}.docx`,
+          filters: [{ name: 'Word', extensions: ['docx'] }],
+        });
+        if (!path) return;
+        const { writeFile } = await import('@tauri-apps/plugin-fs');
+        await writeFile(path, new Uint8Array(await blob.arrayBuffer()));
+        setToast({ path });
+        return;
+      } catch {
+        /* fallback-a keçir */
+      }
+    }
+    const { exportDocx } = await import('./lib/docxBuilder');
     await exportDocx(form);
+    setToast({});
+  };
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 9000);
+    return () => clearTimeout(id);
+  }, [toast]);
+
+  const openToastFile = async () => {
+    if (!toast?.path) return;
+    try {
+      const { openPath } = await import('@tauri-apps/plugin-opener');
+      await openPath(toast.path);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const revealToastFile = async () => {
+    if (!toast?.path) return;
+    try {
+      const { revealItemInDir } = await import('@tauri-apps/plugin-opener');
+      await revealItemInDir(toast.path);
+    } catch {
+      /* ignore */
+    }
   };
 
   const handlePrint = () => {
@@ -236,6 +283,24 @@ export default function App() {
           <div className="flex-1" />
           <button onClick={installUpdate} className="btn-primary px-3 py-1 text-sm rounded-lg">{t(lang, 'updInstall')}</button>
           <button onClick={() => setUpdateInfo(null)} className="px-3 py-1 text-sm rounded-lg border">{t(lang, 'updClose')}</button>
+        </div>
+      )}
+      {toast && (
+        <div className="no-print fixed bottom-4 right-4 z-50 w-80 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#11161F] shadow-2xl p-4">
+          <div className="flex items-start gap-2">
+            <span className="mt-0.5 inline-flex w-6 h-6 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">✓</span>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-sm">{t(lang, 'toastSaved')}</div>
+              <div className="text-xs text-slate-500 truncate" title={toast.path}>{toast.path ?? t(lang, 'toastDownloaded')}</div>
+            </div>
+            <button onClick={() => setToast(null)} className="text-slate-400 hover:text-slate-600 px-1">×</button>
+          </div>
+          {toast.path && (
+            <div className="flex gap-2 mt-3 text-sm">
+              <button onClick={openToastFile} className="btn-primary flex-1 px-3 py-1.5 rounded-lg">{t(lang, 'toastOpen')}</button>
+              <button onClick={revealToastFile} className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-white/10">{t(lang, 'toastFolder')}</button>
+            </div>
+          )}
         </div>
       )}
 
