@@ -3,6 +3,7 @@ import { clearDraft, clearHistory } from '../lib/store';
 import type { GitLabConfig } from '../lib/gitlab';
 import { saveGitLabConfig } from '../lib/gitlab';
 import { loadJiraConfig, saveJiraConfig } from '../lib/jira';
+import { t, type Lang } from '../lib/i18n';
 
 const inputCls =
   'w-full rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400';
@@ -22,6 +23,7 @@ function F({ label, children }: { label: string; children: React.ReactNode }) {
 
 export default function Settings(props: {
   open: boolean;
+  lang: Lang;
   onClose: () => void;
   orgName: string;
   onOrgName: (v: string) => void;
@@ -33,6 +35,7 @@ export default function Settings(props: {
 }) {
   const [jira, setJira] = useState(loadJiraConfig());
   if (!props.open) return null;
+  const lang = props.lang;
 
   const setGl = (patch: Partial<GitLabConfig>) => {
     const v = { ...props.gl, ...patch };
@@ -47,79 +50,79 @@ export default function Settings(props: {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 mb-1">
-          <h2 className="font-bold text-lg">Ayarlar / Settings</h2>
+          <h2 className="font-bold text-lg">{t(lang, 'sTitle')}</h2>
           <div className="flex-1" />
-          <button onClick={props.onClose} className="px-3 py-1 rounded-lg border border-slate-300 dark:border-white/10">Bağla</button>
+          <button onClick={props.onClose} className="px-3 py-1 rounded-lg border border-slate-300 dark:border-white/10">{t(lang, 'sClose')}</button>
         </div>
 
-        <H>Ümumi / General</H>
-        <F label="Təşkilat adı">
+        <H>{t(lang, 'sGeneral')}</H>
+        <F label={t(lang, 'sOrg')}>
           <input className={inputCls} value={props.orgName} onChange={(e) => props.onOrgName(e.target.value)} />
         </F>
         <div className="flex gap-2 text-sm">
           <label className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-white/10 cursor-pointer">
-            Logo yüklə
+            {t(lang, 'sLogoUp')}
             <input type="file" accept="image/*" className="hidden" onChange={(e) => props.onLogo(e.target.files?.[0])} />
           </label>
-          <button onClick={props.onLogoReset} className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-white/10">Default qızıl loqo</button>
+          <button onClick={props.onLogoReset} className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-white/10">{t(lang, 'sLogoDef')}</button>
         </div>
 
-        <H>GitLab inteqrasiyası</H>
-        <F label="Base URL">
+        <H>{t(lang, 'sGitlab')}</H>
+        <F label={t(lang, 'sBase')}>
           <input className={inputCls} value={props.gl.baseUrl} onChange={(e) => setGl({ baseUrl: e.target.value })} placeholder="https://gitlab.azerishiq.az" />
         </F>
-        <F label="Private token (yalnız bu cihazda saxlanılır)">
+        <F label={t(lang, 'sToken')}>
           <input type="password" className={inputCls} value={props.gl.token} onChange={(e) => setGl({ token: e.target.value })} placeholder="glpat-..." />
         </F>
-        <F label="Default layihə (qrup/altqrup/layihə və ya ID)">
+        <F label={t(lang, 'sProject')}>
           <input className={inputCls} value={props.gl.project} onChange={(e) => setGl({ project: e.target.value })} placeholder="programming-team/e-services/emios" />
         </F>
 
         <H>
-          Jira inteqrasiyası{' '}
+          {t(lang, 'sJira')}{' '}
           <span className="text-[11px] font-normal px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">Faza-3</span>
         </H>
         <div className="opacity-60 pointer-events-none">
-          <F label="Base URL">
+          <F label={t(lang, 'sJBase')}>
             <input className={inputCls} value={jira.baseUrl} onChange={(e) => { const v = { ...jira, baseUrl: e.target.value }; setJira(v); saveJiraConfig(v); }} placeholder="https://jira.sirket.az" />
           </F>
           <div className="grid grid-cols-2 gap-2">
-            <F label="Email">
+            <F label={t(lang, 'sJEmail')}>
               <input className={inputCls} value={jira.email} onChange={(e) => { const v = { ...jira, email: e.target.value }; setJira(v); saveJiraConfig(v); }} />
             </F>
-            <F label="API token">
+            <F label={t(lang, 'sJToken')}>
               <input type="password" className={inputCls} value={jira.token} onChange={(e) => { const v = { ...jira, token: e.target.value }; setJira(v); saveJiraConfig(v); }} />
             </F>
           </div>
-          <F label="Layihə açarı">
+          <F label={t(lang, 'sJKey')}>
             <input className={inputCls} value={jira.projectKey} onChange={(e) => { const v = { ...jira, projectKey: e.target.value }; setJira(v); saveJiraConfig(v); }} placeholder="EMIOS" />
           </F>
         </div>
-        <p className="text-xs text-slate-500">Jira bağlantısı Faza-3-də aktivləşəcək (issue-dən sahə doldurma).</p>
+        <p className="text-xs text-slate-500">{t(lang, 'sJNote')}</p>
 
-        <H>Məlumat / Data</H>
+        <H>{t(lang, 'sData')}</H>
         <div className="flex gap-2 text-sm">
           <button
             className="px-3 py-1.5 rounded-lg border border-red-300 text-red-600"
             onClick={() => {
-              if (confirm('Tarixçə silinsin?')) {
+              if (confirm(t(lang, 'sConfirmH'))) {
                 clearHistory();
                 props.onDataChange();
               }
             }}
           >
-            Tarixçəni sil
+            {t(lang, 'sClearH')}
           </button>
           <button
             className="px-3 py-1.5 rounded-lg border border-red-300 text-red-600"
             onClick={() => {
-              if (confirm('Qaralama sıfırlansın?')) {
+              if (confirm(t(lang, 'sConfirmD'))) {
                 clearDraft();
                 window.location.reload();
               }
             }}
           >
-            Qaralamanı sıfırla
+            {t(lang, 'sClearD')}
           </button>
         </div>
       </div>

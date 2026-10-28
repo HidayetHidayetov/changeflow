@@ -4,20 +4,10 @@ import { loadConfig, nextId, peekNextId, projectCode, saveConfig, saveToHistory,
 import { exportDocx } from './lib/docxBuilder';
 import { fetchMR, loadGitLabConfig } from './lib/gitlab';
 import Settings from './components/Settings';
+import { loadLang, saveLang, t, type Lang } from './lib/i18n';
 
 type Tab = 'esas' | 'git' | 'tesir' | 'rollback';
 const DRAFT_KEY = 'changeflow.draft';
-
-function Field(props: { label: string; en: string; children: React.ReactNode }) {
-  return (
-    <label className="block mb-3">
-      <span className="block text-sm font-medium text-slate-600 dark:text-slate-300">
-        {props.label} <span className="text-xs text-slate-400">/ {props.en}</span>
-      </span>
-      <div className="mt-1">{props.children}</div>
-    </label>
-  );
-}
 
 const inputCls =
   'w-full rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400';
@@ -42,7 +32,26 @@ export default function App() {
   const [glStatus, setGlStatus] = useState('');
   const [glLoading, setGlLoading] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [lang, setLang] = useState<Lang>(() => loadLang());
   const orgLogo = useMemo(() => cfg.logoDataUrl || '/logo-gold.svg', [cfg.logoDataUrl]);
+
+  function Field(props: { label: string; en: string; children: React.ReactNode }) {
+    const primary = lang === 'az' ? props.label : props.en;
+    const secondary = lang === 'az' ? props.en : props.label;
+    return (
+      <label className="block mb-3">
+        <span className="block text-sm font-medium text-slate-600 dark:text-slate-300">
+          {primary} <span className="text-xs text-slate-400">/ {secondary}</span>
+        </span>
+        <div className="mt-1">{props.children}</div>
+      </label>
+    );
+  }
+
+  const switchLang = (l: Lang) => {
+    setLang(l);
+    saveLang(l);
+  };
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -63,7 +72,7 @@ export default function App() {
     setForm((f) => ({ ...f, [k]: v }));
 
   const doValidate = () => {
-    const e = validate(form);
+    const e = validate(form, lang);
     setErrors(e);
     return e.length === 0;
   };
@@ -122,20 +131,25 @@ export default function App() {
         <img src="/app-logo.svg" alt="ChangeFlow" className="w-8 h-8 rounded-lg" />
         <div>
           <div className="font-bold leading-none">ChangeFlow</div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">Dəyişiklik sorğusu • {form.id}</div>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400">{t(lang, 'tag')} • {form.id}</div>
         </div>
         <div className="flex-1" />
         <img src={orgLogo} alt="org" className="h-7 object-contain max-w-[140px]" title={form.orgName} />
+        <div className="flex rounded-lg border border-slate-300 dark:border-white/10 overflow-hidden text-sm">
+          <button onClick={() => switchLang('az')} className={`px-2 py-1.5 ${lang === 'az' ? 'bg-[#1D4ED8] text-white' : ''}`}>AZ</button>
+          <button onClick={() => switchLang('en')} className={`px-2 py-1.5 ${lang === 'en' ? 'bg-[#1D4ED8] text-white' : ''}`}>EN</button>
+        </div>
         <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10" title="Dark/Light">
-          {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+          {theme === 'dark' ? t(lang, 'light') : t(lang, 'dark')}
         </button>
-        <button onClick={() => setSettingsOpen(true)} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10">⚙ Ayarlar</button>
-        <button onClick={handleNew} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10">Yeni / New</button>
-        <button onClick={handleExportDocx} className="btn-primary px-3 py-1.5 text-sm rounded-lg">Word yüklə</button>
-        <button onClick={handlePrint} className="px-3 py-1.5 text-sm rounded-lg bg-slate-900 text-white dark:bg-white dark:text-slate-900">PDF / Çap et</button>
+        <button onClick={() => setSettingsOpen(true)} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10">{t(lang, 'settings')}</button>
+        <button onClick={handleNew} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10">{t(lang, 'newDoc')}</button>
+        <button onClick={handleExportDocx} className="btn-primary px-3 py-1.5 text-sm rounded-lg">{t(lang, 'wordBtn')}</button>
+        <button onClick={handlePrint} className="px-3 py-1.5 text-sm rounded-lg bg-slate-900 text-white dark:bg-white dark:text-slate-900">{t(lang, 'printBtn')}</button>
       </header>
       <Settings
         open={settingsOpen}
+        lang={lang}
         onClose={() => setSettingsOpen(false)}
         orgName={form.orgName}
         onOrgName={(v) => {
@@ -153,7 +167,7 @@ export default function App() {
 
       {errors.length > 0 && (
         <div className="no-print mx-4 mt-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-300 p-3 text-sm">
-          <b>Zəhmət olmasa düzəldin / Fix required:</b>
+          <b>{t(lang, 'fixTitle')}</b>
           <ul className="list-disc ml-5">{errors.map((e) => <li key={e}>{e}</li>)}</ul>
         </div>
       )}
@@ -162,10 +176,10 @@ export default function App() {
         {/* Form */}
         <section className="no-print w-full lg:w-[480px] shrink-0 rounded-xl bg-white dark:bg-[#11161F] border border-slate-200 dark:border-white/10 p-4">
           <div className="flex gap-1 mb-4 text-sm">
-            {(['esas', 'git', 'tesir', 'rollback'] as Tab[]).map((t) => (
-              <button key={t} onClick={() => setTab(t)}
-                className={`px-3 py-1.5 rounded-lg ${tab === t ? 'bg-[#1D4ED8] text-white font-semibold' : 'bg-slate-100 dark:bg-white/5'}`}>
-                {t === 'esas' ? 'Əsas' : t === 'git' ? 'Git' : t === 'tesir' ? 'Təsir/Test' : 'Rollback'}
+            {(['esas', 'git', 'tesir', 'rollback'] as Tab[]).map((tb) => (
+              <button key={tb} onClick={() => setTab(tb)}
+                className={`px-3 py-1.5 rounded-lg ${tab === tb ? 'bg-[#1D4ED8] text-white font-semibold' : 'bg-slate-100 dark:bg-white/5'}`}>
+                {tb === 'esas' ? t(lang, 'tabMain') : tb === 'git' ? t(lang, 'tabGit') : tb === 'tesir' ? t(lang, 'tabImpact') : 'Rollback'}
               </button>
             ))}
           </div>
@@ -179,7 +193,7 @@ export default function App() {
                 <Field label="Layihə" en="Project"><input className={inputCls} value={form.project} onChange={(e) => set('project', e.target.value)} /></Field>
                 <Field label="Status" en="Status">
                   <select className={inputCls} value={form.status} onChange={(e) => set('status', e.target.value)}>
-                    <option>Layihə</option><option>Təsdiq gözləyir</option><option>Təsdiqlənib</option><option>İmtina</option>
+                    <option value="Layihə">{t(lang, 'stDraft')}</option><option value="Təsdiq gözləyir">{t(lang, 'stPending')}</option><option value="Təsdiqlənib">{t(lang, 'stApproved')}</option><option value="İmtina">{t(lang, 'stRejected')}</option>
                   </select>
                 </Field>
               </div>
@@ -195,12 +209,12 @@ export default function App() {
                 </Field>
                 <Field label="Vaciblik" en="Urgency">
                   <select className={inputCls} value={form.urgency} onChange={(e) => set('urgency', e.target.value as ChangeRequest['urgency'])}>
-                    <option>Aşağı</option><option>Orta</option><option>Yüksək</option>
+                    <option value="Aşağı">{t(lang, 'optLow')}</option><option value="Orta">{t(lang, 'optMid')}</option><option value="Yüksək">{t(lang, 'optHigh')}</option>
                   </select>
                 </Field>
                 <Field label="Risk" en="Risk">
                   <select className={inputCls} value={form.risk} onChange={(e) => set('risk', e.target.value as ChangeRequest['risk'])}>
-                    <option>Aşağı</option><option>Orta</option><option>Yüksək</option>
+                    <option value="Aşağı">{t(lang, 'optLow')}</option><option value="Orta">{t(lang, 'optMid')}</option><option value="Yüksək">{t(lang, 'optHigh')}</option>
                   </select>
                 </Field>
               </div>
@@ -220,16 +234,16 @@ export default function App() {
                 <Field label="MR IID" en="IID"><input className={inputCls} value={form.mrIid} onChange={(e) => set('mrIid', e.target.value)} placeholder="!142" /></Field>                <Field label="Source" en="Source branch"><input className={inputCls} value={form.sourceBranch} onChange={(e) => set('sourceBranch', e.target.value)} /></Field>
                 <Field label="Target" en="Target branch"><input className={inputCls} value={form.targetBranch} onChange={(e) => set('targetBranch', e.target.value)} /></Field>
               </div>
-              <p className="text-[11px] text-amber-600 dark:text-amber-400 -mt-1 mb-2">Əl ilə açılan nömrə (CR-...) hər cihazda 0001-dən başlayır — təkrar riski var. Unikal nömrə üçün MR-i bağla, ID avtomatik LAYİHƏ-MRIID olacaq.</p>
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 -mt-1 mb-2">{t(lang, 'dupWarn')}</p>
               <Field label="Commit-lər" en="Commits"><textarea rows={3} className={inputCls} value={form.commits} onChange={(e) => set('commits', e.target.value)} placeholder="abc1234 mesaj" /></Field>
               <Field label="Diff stat" en="Diff"><input className={inputCls} value={form.diffStat} onChange={(e) => set('diffStat', e.target.value)} placeholder="+123/-45, 6 fayl" /></Field>
               <div className="mt-2 rounded-lg border border-slate-200 dark:border-white/10 p-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <b className="text-sm">GitLab-dan doldur / Fetch from GitLab</b>
+                  <b className="text-sm">{t(lang, 'fetchTitle')}</b>
                   <div className="flex-1" />
-                  <button className="text-xs text-blue-600 underline" onClick={() => setSettingsOpen(true)}>Ayarlar / Settings</button>
+                  <button className="text-xs text-blue-600 underline" onClick={() => setSettingsOpen(true)}>{t(lang, 'settings')}</button>
                 </div>
-                <div className="text-xs text-slate-500 mb-2">{gl.baseUrl} • {gl.project || 'layihə seçilməyib — Ayarlardan əlavə et'}</div>
+                <div className="text-xs text-slate-500 mb-2">{gl.baseUrl} • {gl.project || t(lang, 'noProject')}{gl.project ? ` — ${t(lang, 'changeInSettings')}` : ''}</div>
                 <div className="flex items-center gap-2">
                   <button
                     disabled={glLoading}
@@ -237,14 +251,14 @@ export default function App() {
                     onClick={async () => {
                       const missing: string[] = [];
                       if (!gl.token) missing.push('Token');
-                      if (!gl.project) missing.push('Layihə/Project');
-                      if (!form.mrIid) missing.push('MR IID (yuxarıdakı MR IID sahəsi)');
+                      if (!gl.project) missing.push(t(lang, 'sProject').split(' (')[0]);
+                      if (!form.mrIid) missing.push('MR IID');
                       if (missing.length > 0) {
-                        setGlStatus(`Çatışmır / Missing: ${missing.join(', ')}`);
+                        setGlStatus(`${t(lang, 'missing')}: ${missing.join(', ')}`);
                         return;
                       }
                       setGlLoading(true);
-                      setGlStatus('Yüklənir / Loading...');
+                      setGlStatus(t(lang, 'loading'));
                       try {
                         const info = await fetchMR(gl, form.mrIid);
                         const cleanIid = form.mrIid.replace(/^!/, '').trim();
@@ -264,19 +278,19 @@ export default function App() {
                           time: info.time || f.time,
                           status: info.status || f.status,
                         }));
-                        setGlStatus(`OK — ID: ${docId}, tarix/saat/status MR-dən`);
+                        setGlStatus(`OK — ID: ${docId}, ${t(lang, 'okFetched')}`);
                       } catch (e) {
-                        setGlStatus(`Xəta / Error: ${e instanceof Error ? e.message : String(e)}`);
+                        setGlStatus(`${t(lang, 'errFetch')}: ${e instanceof Error ? e.message : String(e)}`);
                       } finally {
                         setGlLoading(false);
                       }
                     }}
                   >
-                    {glLoading ? 'Yüklənir...' : 'MR-i gətir / Fetch'}
+                    {glLoading ? t(lang, 'loading') : t(lang, 'fetchBtn')}
                   </button>
                   {glStatus && <span className="text-xs text-slate-500">{glStatus}</span>}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-2">Token yalnız bu cihazda saxlanılır, heç yerə göndərilmir (GitLab-dan başqa).</p>
+                <p className="text-[11px] text-slate-500 mt-2">{t(lang, 'tokenLocal')}</p>
               </div>
             </>
           )}
@@ -292,7 +306,7 @@ export default function App() {
               <div className="grid grid-cols-3 gap-2">
                 <Field label="Downtime?" en="Downtime">
                   <select className={inputCls} value={form.downtime} onChange={(e) => set('downtime', e.target.value)}>
-                    <option>Xeyr</option><option>Bəli</option>
+                    <option value="Xeyr">{t(lang, 'no')}</option><option value="Bəli">{t(lang, 'yes')}</option>
                   </select>
                 </Field>
                 <Field label="Müddət" en="Duration"><input className={inputCls} value={form.downtimeDuration} onChange={(e) => set('downtimeDuration', e.target.value)} /></Field>
@@ -316,10 +330,10 @@ export default function App() {
                 <Field label="Məsul" en="Owner"><input className={inputCls} value={form.rollbackOwner} onChange={(e) => set('rollbackOwner', e.target.value)} /></Field>
                 <Field label="Bərpa vaxtı" en="ETA"><input className={inputCls} value={form.rollbackEta} onChange={(e) => set('rollbackEta', e.target.value)} /></Field>
               </div>
-              <p className="text-xs text-slate-500 mt-2">Qaralama avtomatik yadda saxlanılır. Yeni sənəd açanda nömrə artır.</p>
+              <p className="text-xs text-slate-500 mt-2">{t(lang, 'draftNote')}</p>
               {history.length > 0 && (
                 <div className="mt-3 text-sm">
-                  <b>Tarixçə / History:</b>
+                  <b>{t(lang, 'historyTitle')}</b>
                   <ul className="mt-1 max-h-32 overflow-auto border border-slate-200 dark:border-white/10 rounded-lg p-2">
                     {history.map((h) => (
                       <li key={h}><button className="text-[#4F8FF7] underline" onClick={() => openHistory(h)}>{h}</button></li>

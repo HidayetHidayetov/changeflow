@@ -85,13 +85,16 @@ export const emptyRequest = (id: string): ChangeRequest => ({
   orgName: 'Azerishiq OJSC',
 });
 
-export function validate(r: ChangeRequest): string[] {
+import type { Lang } from './lib/i18n';
+
+export function validate(r: ChangeRequest, lang: Lang = 'az'): string[] {
   const errs: string[] = [];
-  if (!r.title.trim()) errs.push('Dəyişiklik adı məcburidir / Title required');
-  if (!r.project.trim()) errs.push('Layihə məcburidir / Project required');
-  if (!r.description.trim()) errs.push('Təsvir məcburidir / Description required');
-  if (!r.reason.trim()) errs.push('Səbəb məcburidir / Reason required');
-  if (!r.testSteps.trim()) errs.push('Test planı məcburidir / Test plan required');
-  if (!r.rollbackSteps.trim()) errs.push('Geri dönmə planı məcburidir / Rollback required');
+  const req = lang === 'az' ? 'məcburidir' : 'is required';
+  if (!r.title.trim()) errs.push(`${lang === 'az' ? 'Dəyişiklik adı' : 'Title'} ${req}`);
+  if (!r.project.trim()) errs.push(`${lang === 'az' ? 'Layihə' : 'Project'} ${req}`);
+  if (!r.description.trim()) errs.push(`${lang === 'az' ? 'Təsvir' : 'Description'} ${req}`);
+  if (!r.reason.trim()) errs.push(`${lang === 'az' ? 'Səbəb' : 'Reason'} ${req}`);
+  if (!r.testSteps.trim()) errs.push(`${lang === 'az' ? 'Test planı' : 'Test plan'} ${req}`);
+  if (!r.rollbackSteps.trim()) errs.push(`${lang === 'az' ? 'Geri dönmə planı' : 'Rollback plan'} ${req}`);
   return errs;
 }
