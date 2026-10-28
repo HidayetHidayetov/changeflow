@@ -2,9 +2,28 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+:root {
+  --cf-bg: #0a0e14;
+  --cf-surface: #11161f;
+  --cf-border: rgba(255, 255, 255, 0.09);
+  --cf-accent1: #4f8ff7;
+  --cf-accent2: #2dd4bf;
+  --cf-gold: #d1b180;
+}
+
+html.dark body {
+  background: var(--cf-bg);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--cf-accent1), var(--cf-accent2));
+  color: #06121f;
+  font-weight: 600;
+}
+.btn-primary:hover { filter: brightness(1.08); }
+
 @media print {
   .no-print { display: none !important; }
-  .print-only { display: block !important; }
   body { background: white !important; }
   #a4-preview {
     box-shadow: none !important;

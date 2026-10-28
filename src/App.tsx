@@ -4,11 +4,12 @@ import { loadConfig, nextId, peekNextId, saveConfig, saveToHistory, listHistory,
 import { exportDocx } from './lib/docxBuilder';
 
 type Tab = 'esas' | 'git' | 'tesir' | 'rollback';
+const DRAFT_KEY = 'changeflow.draft';
 
 function Field(props: { label: string; en: string; children: React.ReactNode }) {
   return (
     <label className="block mb-3">
-      <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+      <span className="block text-sm font-medium text-slate-600 dark:text-slate-300">
         {props.label} <span className="text-xs text-slate-400">/ {props.en}</span>
       </span>
       <div className="mt-1">{props.children}</div>
@@ -17,17 +18,25 @@ function Field(props: { label: string; en: string; children: React.ReactNode }) 
 }
 
 const inputCls =
-  'w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500';
+  'w-full rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#4F8FF7] dark:text-slate-100 placeholder:text-slate-400';
+
+function loadDraft(): ChangeRequest | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? (JSON.parse(raw) as ChangeRequest) : null;
+  } catch {
+    return null;
+  }
+}
 
 export default function App() {
-  const [form, setForm] = useState<ChangeRequest>(() => emptyRequest(peekNextId()));
+  const [form, setForm] = useState<ChangeRequest>(() => loadDraft() ?? emptyRequest(peekNextId()));
   const [tab, setTab] = useState<Tab>('esas');
-  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
-    window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
-  );
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [errors, setErrors] = useState<string[]>([]);
   const [history, setHistory] = useState<string[]>(() => listHistory());
-  const cfg = useMemo(() => loadConfig(), []);
+  const [cfg, setCfg] = useState(() => loadConfig());
+  const orgLogo = useMemo(() => cfg.logoDataUrl || '/logo-gold.svg', [cfg.logoDataUrl]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -35,7 +44,14 @@ export default function App() {
 
   useEffect(() => {
     setForm((f) => ({ ...f, orgName: f.orgName || cfg.orgName }));
-  }, [cfg.orgName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+    } catch { /* ignore */ }
+  }, [form]);
 
   const set = <K extends keyof ChangeRequest>(k: K, v: ChangeRequest[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -62,7 +78,9 @@ export default function App() {
   };
 
   const handleNew = () => {
-    setForm(emptyRequest(nextId()));
+    const n = emptyRequest(nextId());
+    n.orgName = form.orgName;
+    setForm(n);
     setErrors([]);
   };
 
@@ -70,10 +88,17 @@ export default function App() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      saveConfig({ orgName: form.orgName, logoDataUrl: String(reader.result ?? ''), theme: 'system' });
-      window.location.reload();
+      const c = { orgName: form.orgName, logoDataUrl: String(reader.result ?? ''), theme: 'system' as const };
+      saveConfig(c);
+      setCfg(c);
     };
     reader.readAsDataURL(file);
+  };
+
+  const resetLogo = () => {
+    const c = { orgName: form.orgName, logoDataUrl: '', theme: 'system' as const };
+    saveConfig(c);
+    setCfg(c);
   };
 
   const openHistory = (id: string) => {
@@ -85,26 +110,31 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen bg-[#F1F5F9] dark:bg-[#0A0E14] text-slate-900 dark:text-slate-100">
       {/* TopBar */}
-      <header className="no-print sticky top-0 z-10 border-b border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 backdrop-blur px-4 py-2 flex items-center gap-2">
-        <div className="font-bold text-blue-700 dark:text-blue-400">ChangeFlow</div>
-        <span className="text-xs text-slate-500">{form.id}</span>
+      <header className="no-print sticky top-0 z-10 border-b border-slate-200 dark:border-white/10 bg-white/90 dark:bg-[#0A0E14]/90 backdrop-blur px-4 py-2 flex items-center gap-3">
+        <img src="/app-logo.svg" alt="ChangeFlow" className="w-8 h-8 rounded-lg" />
+        <div>
+          <div className="font-bold leading-none">ChangeFlow</div>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400">Dəyişiklik sorğusu • {form.id}</div>
+        </div>
         <div className="flex-1" />
-        <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="px-3 py-1.5 text-sm rounded-md border" title="Dark/Light">
+        <img src={orgLogo} alt="org" className="h-7 object-contain max-w-[140px]" title={form.orgName} />
+        <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10" title="Dark/Light">
           {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
         </button>
-        <label className="px-3 py-1.5 text-sm rounded-md border cursor-pointer">
+        <label className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10 cursor-pointer">
           Logo
           <input type="file" accept="image/*" className="hidden" onChange={(e) => handleLogo(e.target.files?.[0])} />
         </label>
-        <button onClick={handleNew} className="px-3 py-1.5 text-sm rounded-md border">Yeni / New</button>
-        <button onClick={handleExportDocx} className="px-3 py-1.5 text-sm rounded-md bg-blue-600 text-white">Word ixrac</button>
-        <button onClick={handlePrint} className="px-3 py-1.5 text-sm rounded-md bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900">PDF / Çap et</button>
+        <button onClick={resetLogo} className="px-2 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-white/10" title="Default qızıl logoya qayıt">Reset</button>
+        <button onClick={handleNew} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10">Yeni / New</button>
+        <button onClick={handleExportDocx} className="btn-primary px-3 py-1.5 text-sm rounded-lg">Word ixrac</button>
+        <button onClick={handlePrint} className="px-3 py-1.5 text-sm rounded-lg bg-slate-900 text-white dark:bg-white dark:text-slate-900">PDF / Çap et</button>
       </header>
 
       {errors.length > 0 && (
-        <div className="no-print mx-4 mt-3 rounded-md bg-red-50 dark:bg-red-900/30 border border-red-300 p-3 text-sm">
+        <div className="no-print mx-4 mt-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-300 p-3 text-sm">
           <b>Zəhmət olmasa düzəldin / Fix required:</b>
           <ul className="list-disc ml-5">{errors.map((e) => <li key={e}>{e}</li>)}</ul>
         </div>
@@ -112,11 +142,11 @@ export default function App() {
 
       <div className="flex flex-col lg:flex-row gap-4 p-4">
         {/* Form */}
-        <section className="no-print w-full lg:w-[480px] shrink-0 rounded-lg bg-white dark:bg-slate-800 border p-4">
+        <section className="no-print w-full lg:w-[480px] shrink-0 rounded-xl bg-white dark:bg-[#11161F] border border-slate-200 dark:border-white/10 p-4">
           <div className="flex gap-1 mb-4 text-sm">
             {(['esas', 'git', 'tesir', 'rollback'] as Tab[]).map((t) => (
               <button key={t} onClick={() => setTab(t)}
-                className={`px-3 py-1.5 rounded-md ${tab === t ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700'}`}>
+                className={`px-3 py-1.5 rounded-lg ${tab === t ? 'text-[#06121f] bg-gradient-to-br from-[#4F8FF7] to-[#2DD4BF] font-semibold' : 'bg-slate-100 dark:bg-white/5'}`}>
                 {t === 'esas' ? 'Əsas' : t === 'git' ? 'Git' : t === 'tesir' ? 'Təsir/Test' : 'Rollback'}
               </button>
             ))}
@@ -213,12 +243,13 @@ export default function App() {
                 <Field label="Məsul" en="Owner"><input className={inputCls} value={form.rollbackOwner} onChange={(e) => set('rollbackOwner', e.target.value)} /></Field>
                 <Field label="Bərpa vaxtı" en="ETA"><input className={inputCls} value={form.rollbackEta} onChange={(e) => set('rollbackEta', e.target.value)} /></Field>
               </div>
+              <p className="text-xs text-slate-500 mt-2">Qaralama avtomatik yadda saxlanılır. Yeni sənəd açanda nömrə artır.</p>
               {history.length > 0 && (
-                <div className="mt-4 text-sm">
+                <div className="mt-3 text-sm">
                   <b>Tarixçə / History:</b>
-                  <ul className="mt-1 max-h-32 overflow-auto border rounded-md p-2">
+                  <ul className="mt-1 max-h-32 overflow-auto border border-slate-200 dark:border-white/10 rounded-lg p-2">
                     {history.map((h) => (
-                      <li key={h}><button className="text-blue-600 underline" onClick={() => openHistory(h)}>{h}</button></li>
+                      <li key={h}><button className="text-[#4F8FF7] underline" onClick={() => openHistory(h)}>{h}</button></li>
                     ))}
                   </ul>
                 </div>
@@ -229,35 +260,41 @@ export default function App() {
 
         {/* Preview */}
         <section className="flex-1 flex justify-center overflow-auto">
-          <div id="a4-preview" className="shadow-lg p-[15mm] text-[11pt] leading-relaxed">
-            <div className="text-center border-b-2 border-blue-800 pb-2 mb-3">
-              <div className="font-bold">{form.orgName || 'Təşkilat'}</div>
-              <div className="text-blue-800 font-bold text-lg">DƏYİŞİKLİK SORĞUSU / CHANGE REQUEST — {form.id}</div>
-              <div className="text-xs text-slate-500">{form.date} {form.time} | {form.project} | {form.status}</div>
+          <div id="a4-preview" className="shadow-xl p-[15mm] text-[11pt] leading-relaxed">
+            <div className="flex items-center gap-4 border-b-2 border-[#0A0E14] pb-3 mb-3">
+              <img src={orgLogo} alt="org logo" className="h-12 object-contain max-w-[220px]" />
+              <div className="flex-1 text-right">
+                <div className="font-bold">{form.orgName || 'Təşkilat'}</div>
+                <div className="font-bold text-lg">DƏYİŞİKLİK SORĞUSU / CHANGE REQUEST — {form.id}</div>
+                <div className="text-xs text-slate-500">{form.date} {form.time} | {form.project} | {form.status}</div>
+              </div>
             </div>
             <PreviewRow az="Dəyişiklik adı" en="Title" v={form.title} />
             <PreviewRow az="Müəllif" en="Author" v={`${form.author} ${form.team} ${form.contact}`} />
             <PreviewRow az="Növ / Vaciblik / Risk" en="Type" v={`${form.type} / ${form.urgency} / ${form.risk} ${form.riskNote}`} />
             <PreviewRow az="Git" en="Git" v={`${form.repoUrl} ${form.mrUrl} ${form.mrIid} (${form.sourceBranch} → ${form.targetBranch}) ${form.diffStat}`} />
-            <h3 className="font-bold text-blue-800 mt-3">Təsvir / Description</h3>
+            <h3 className="font-bold mt-3">Təsvir / Description</h3>
             <p className="whitespace-pre-wrap">{form.description || '—'}</p>
-            <h3 className="font-bold text-blue-800 mt-2">Səbəb / Reason</h3>
+            <h3 className="font-bold mt-2">Səbəb / Reason</h3>
             <p className="whitespace-pre-wrap">{form.reason || '—'}</p>
-            <h3 className="font-bold text-blue-800 mt-2">Təsir / Impact</h3>
+            <h3 className="font-bold mt-2">Təsir / Impact</h3>
             <p>{form.system} {form.subsystem} {form.modules} | İstifadəçi: {form.userImpact || '—'} | Downtime: {form.downtime} {form.downtimeDuration} | {form.spentMinutes} dəq</p>
-            <h3 className="font-bold text-blue-800 mt-2">Test / Test plan ({form.testEnv})</h3>
+            <h3 className="font-bold mt-2">Test / Test plan ({form.testEnv})</h3>
             <p className="whitespace-pre-wrap">{form.testSteps || '—'}</p>
             <p><b>Gözlənilən / Expected:</b> {form.testExpected || '—'} | <b>Faktiki / Actual:</b> {form.testActual || '—'}</p>
-            <h3 className="font-bold text-blue-800 mt-2">Geri dönmə / Rollback</h3>
+            <h3 className="font-bold mt-2">Geri dönmə / Rollback</h3>
             <p className="whitespace-pre-wrap">{form.rollbackSteps}</p>
             <p className="text-sm">Məsul / Owner: {form.rollbackOwner || '—'} | ETA: {form.rollbackEta || '—'}</p>
             <div className="mt-4 grid grid-cols-4 gap-2 border text-sm">
-              <div className="p-2 border-b">☐ Təsdiqlənib<br/>☐ İmtina<br/>☐ Əlavə məlumat</div>
-              <div className="p-2 border-b">Ad: _______<br/>Vəzifə: _______</div>
+              <div className="p-2 border-b">☐ Təsdiqlənib<br />☐ İmtina<br />☐ Əlavə məlumat</div>
+              <div className="p-2 border-b">Ad: _______<br />Vəzifə: _______</div>
               <div className="p-2 border-b">İmza: _______</div>
               <div className="p-2 border-b">Tarix: _______</div>
             </div>
-            <div className="mt-2 text-center text-xs text-slate-500">{form.id} | {form.orgName} | Səhifə 1/1</div>
+            <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+              <span>{form.id} | {form.orgName}</span>
+              <span className="inline-flex items-center gap-1"><img src="/app-logo.svg" className="w-4 h-4" alt="" /> ChangeFlow ilə hazırlandı</span>
+            </div>
           </div>
         </section>
       </div>
