@@ -54,7 +54,7 @@ async function httpGet(url: string, token: string): Promise<unknown> {
   return res.json();
 }
 
-function toLocalDateTime(iso: string): { date: string; time: string } {
+export function toLocalDateTime(iso: string): { date: string; time: string } {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return { date: '', time: '' };
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -64,7 +64,7 @@ function toLocalDateTime(iso: string): { date: string; time: string } {
   };
 }
 
-function mapState(state: string, mergedAt: string): string {
+export function mapState(state: string, mergedAt: string): string {
   if (state === 'merged') return 'Təsdiqlənib';
   if (state === 'closed') return 'İmtina';
   if (state === 'locked') return 'Təsdiq gözləyir';
