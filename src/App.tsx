@@ -220,8 +220,12 @@ export default function App() {
                     disabled={glLoading}
                     className="btn-primary px-3 py-1.5 text-sm rounded-lg disabled:opacity-50"
                     onClick={async () => {
-                      if (!gl.token || !gl.project || !form.mrIid) {
-                        setGlStatus('Token, layihə və MR IID lazımdır / required');
+                      const missing: string[] = [];
+                      if (!gl.token) missing.push('Token');
+                      if (!gl.project) missing.push('Layihə/Project');
+                      if (!form.mrIid) missing.push('MR IID (yuxarıdakı MR IID sahəsi)');
+                      if (missing.length > 0) {
+                        setGlStatus(`Çatışmır / Missing: ${missing.join(', ')}`);
                         return;
                       }
                       setGlLoading(true);

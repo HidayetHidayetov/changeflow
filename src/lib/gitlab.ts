@@ -52,7 +52,8 @@ async function httpGet(url: string, token: string): Promise<unknown> {
 
 export async function fetchMR(cfg: GitLabConfig, iid: string): Promise<MRInfo> {
   const base = apiBase(cfg.baseUrl);
-  const pid = encodeURIComponent(cfg.project);
+  const cleanProject = cfg.project.replace(/^\/+/, '').replace(/\/+$/, '');
+  const pid = encodeURIComponent(cleanProject);
   const cleanIid = iid.replace(/^!/, '').trim();
   const mr = (await httpGet(`${base}/projects/${pid}/merge_requests/${cleanIid}`, cfg.token)) as Record<string, unknown>;
   const commits = (await httpGet(`${base}/projects/${pid}/merge_requests/${cleanIid}/commits`, cfg.token)) as Array<Record<string, unknown>>;
