@@ -13,11 +13,17 @@ import {
 import { saveAs } from 'file-saver';
 import type { ChangeRequest } from '../types';
 
-// Real blank: Change-Request-example.docx (SMS GATEWAY) strukturu,
-// yazı səhvləri düzəldilib + standart sahələr (RİSK, TEST, DOWNTIME) əlavə olunub.
+// Real blank: Change-Request-example.docx (SMS GATEWAY) strukturu + rəngləri:
+// label = D4E5E5 (açıq mavi), dəyər = EFF5F4, tab2 başlıq = EDEDED,
+// vaciblik şkalası EFF5F4/DDEFED/D4E5E5, normal = E7E7E7, emergency = DBDBDB.
+// Yazı səhvləri düzəldilib + standart sahələr (RİSK, TEST, DOWNTIME) əlavə olunub.
 
-const LBL = (t: string) => new Paragraph({ children: [new TextRun({ text: t, bold: true })] });
-const VAL = (t: string) => new Paragraph({ children: [new TextRun({ text: t || '—' })] });
+const LABEL = 'D4E5E5';
+const VALUE = 'EFF5F4';
+const H2 = 'EDEDED';
+const MID = 'DDEFED';
+const GRAY = 'E7E7E7';
+const DARK = 'DBDBDB';
 const NUM_REF = 'blank-num';
 
 const numbering = {
@@ -36,6 +42,13 @@ const numbering = {
   ],
 };
 
+const P = (t: string, bold = false) =>
+  new Paragraph({ children: [new TextRun({ text: t || '—', bold })] });
+const TH = (t: string, fill: string = LABEL) =>
+  new TableCell({ shading: { fill }, children: [P(t, true)] });
+const TD = (t: string, fill = 'FFFFFF') =>
+  new TableCell({ shading: { fill }, children: [P(t)] });
+
 function lines(text: string): string[] {
   return text
     .split(/\r?\n/)
@@ -45,7 +58,7 @@ function lines(text: string): string[] {
 
 function numberedParas(text: string): Paragraph[] {
   const ls = lines(text);
-  if (ls.length === 0) return [VAL('')];
+  if (ls.length === 0) return [P('')];
   return ls.map(
     (l) =>
       new Paragraph({
@@ -60,8 +73,8 @@ function sectionRow(title: string): TableRow {
     children: [
       new TableCell({
         columnSpan: 3,
-        shading: { fill: 'D9D9D9' },
-        children: [new Paragraph({ children: [new TextRun({ text: title, bold: true })] })],
+        shading: { fill: LABEL },
+        children: [P(title, true)],
       }),
     ],
   });
@@ -69,7 +82,7 @@ function sectionRow(title: string): TableRow {
 
 function span3(text: string): TableRow {
   return new TableRow({
-    children: [new TableCell({ columnSpan: 3, children: [VAL(text)] })],
+    children: [new TableCell({ columnSpan: 3, children: [P(text)] })],
   });
 }
 
@@ -80,9 +93,11 @@ function span3Numbered(text: string): TableRow {
 }
 
 export async function exportDocx(r: ChangeRequest): Promise<void> {
-  const gitCell = [r.repoUrl, r.mrUrl && r.mrIid ? `${r.mrUrl} (${r.mrIid})` : r.mrUrl || r.mrIid, r.sourceBranch ? `${r.sourceBranch} → ${r.targetBranch}` : '']
-    .filter(Boolean)
-    .join('\n');
+  const gitLines = [
+    r.repoUrl,
+    r.mrUrl && r.mrIid ? `${r.mrUrl} (${r.mrIid})` : r.mrUrl || r.mrIid,
+    r.sourceBranch ? `${r.sourceBranch} → ${r.targetBranch}` : '',
+  ].filter(Boolean);
   const summary = r.summary || r.title;
   const ux = r.urgency === 'Aşağı' ? 0 : r.urgency === 'Orta' ? 1 : 2;
   const tp = r.type === 'Emergency' ? 1 : 0;
@@ -94,7 +109,7 @@ export async function exportDocx(r: ChangeRequest): Promise<void> {
         children: [
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            children: [new TextRun({ text: 'DƏYİŞİKLİKLƏRİN İDARƏ EDİLMƏSİ BLANKI', bold: true, size: 28 })],
+            children: [new TextRun({ text: 'DƏYİŞİKLİKLƏRİN İDARƏ EDİLMƏSİ BLANKI', bold: true, size: 32 })],
           }),
           ...(r.orgName
             ? [
@@ -112,39 +127,40 @@ export async function exportDocx(r: ChangeRequest): Promise<void> {
             rows: [
               new TableRow({
                 children: [
-                  new TableCell({ columnSpan: 2, children: [LBL('DƏYİŞİKLİYİN ADI')] }),
-                  new TableCell({ children: [VAL(r.title)] }),
-                  new TableCell({ children: [LBL('DƏYİŞİK №.')] }),
-                  new TableCell({ children: [VAL(r.id)] }),
+                  new TableCell({ columnSpan: 2, shading: { fill: LABEL }, children: [P('DƏYİŞİKLİYİN ADI', true)] }),
+                  TD(r.title, VALUE),
+                  TH('DƏYİŞİK №.'),
+                  new TableCell({ children: [P(r.id)] }),
                 ],
               }),
               new TableRow({
                 children: [
-                  new TableCell({ columnSpan: 3, rowSpan: 2, children: [VAL(summary)] }),
-                  new TableCell({ children: [LBL('DƏYİŞİKLİK STATUSU')] }),
-                  new TableCell({ children: [VAL(r.status)] }),
+                  new TableCell({ columnSpan: 3, rowSpan: 2, shading: { fill: VALUE }, children: [P(summary)] }),
+                  TH('DƏYİŞİKLİK STATUSU'),
+                  new TableCell({ children: [P(r.status)] }),
+                ],
+              }),
+              new TableRow({
+                children: [TH('TARİX'), new TableCell({ children: [P(r.date)] })],
+              }),
+              new TableRow({
+                children: [
+                  TH('LAYİHƏ'),
+                  new TableCell({ columnSpan: 2, shading: { fill: VALUE }, children: [P(r.project)] }),
+                  TH('VAXT'),
+                  new TableCell({ children: [P(r.time)] }),
                 ],
               }),
               new TableRow({
                 children: [
-                  new TableCell({ children: [LBL('TARİX')] }),
-                  new TableCell({ children: [VAL(r.date)] }),
-                ],
-              }),
-              new TableRow({
-                children: [
-                  new TableCell({ children: [LBL('LAYİHƏ')] }),
-                  new TableCell({ columnSpan: 2, children: [VAL(r.project)] }),
-                  new TableCell({ children: [LBL('VAXT')] }),
-                  new TableCell({ children: [VAL(r.time)] }),
-                ],
-              }),
-              new TableRow({
-                children: [
-                  new TableCell({ children: [LBL('REPO / MR LİNKİ')] }),
-                  new TableCell({ columnSpan: 2, children: gitCell.split('\n').map((l) => VAL(l)) }),
-                  new TableCell({ children: [LBL('SƏRF OLUNAN VAXT')] }),
-                  new TableCell({ children: [VAL(r.spentMinutes ? `${r.spentMinutes} dəqiqə` : '')] }),
+                  TH('REPO / MR LİNKİ'),
+                  new TableCell({
+                    columnSpan: 2,
+                    shading: { fill: VALUE },
+                    children: gitLines.length ? gitLines.map((l) => P(l)) : [P('')],
+                  }),
+                  TH('SƏRF OLUNAN VAXT'),
+                  new TableCell({ children: [P(r.spentMinutes ? `${r.spentMinutes} dəqiqə` : '')] }),
                 ],
               }),
             ],
@@ -155,16 +171,8 @@ export async function exportDocx(r: ChangeRequest): Promise<void> {
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: [
-              new TableRow({
-                children: [
-                  new TableCell({ children: [LBL('SORĞUNU YARADAN')] }),
-                  new TableCell({ children: [LBL('SORĞU')] }),
-                  new TableCell({ children: [LBL('ƏLAQƏ MƏLUMATI')] }),
-                ],
-              }),
-              new TableRow({
-                children: [new TableCell({ children: [VAL(r.author)] }), new TableCell({ children: [VAL(r.title)] }), new TableCell({ children: [VAL(r.contact)] })],
-              }),
+              new TableRow({ children: [TH('SORĞUNU YARADAN', H2), TH('SORĞU', H2), TH('ƏLAQƏ MƏLUMATI', H2)] }),
+              new TableRow({ children: [TD(r.author), TD(r.title), TD(r.contact)] }),
             ],
           }),
           new Paragraph({ text: '' }),
@@ -175,22 +183,22 @@ export async function exportDocx(r: ChangeRequest): Promise<void> {
             rows: [
               new TableRow({
                 children: [
-                  new TableCell({ rowSpan: 2, children: [LBL('SORĞU VACİBLİYİ')] }),
-                  new TableCell({ children: [LBL('AŞAĞI')] }),
-                  new TableCell({ children: [LBL('ORTA')] }),
-                  new TableCell({ children: [LBL('YÜKSƏK')] }),
-                  new TableCell({ rowSpan: 2, children: [LBL('DƏYİŞİKLİYİN NÖVÜ')] }),
-                  new TableCell({ children: [LBL('NORMAL')] }),
-                  new TableCell({ children: [LBL('EMERGENCY')] }),
+                  new TableCell({ rowSpan: 2, children: [P('SORĞU VACİBLİYİ', true)] }),
+                  TH('AŞAĞI', VALUE),
+                  TH('ORTA', MID),
+                  TH('YÜKSƏK', LABEL),
+                  new TableCell({ rowSpan: 2, children: [P('DƏYİŞİKLİYİN NÖVÜ', true)] }),
+                  TH('NORMAL', GRAY),
+                  TH('EMERGENCY', DARK),
                 ],
               }),
               new TableRow({
                 children: [
-                  new TableCell({ children: [VAL(ux === 0 ? 'X' : '')] }),
-                  new TableCell({ children: [VAL(ux === 1 ? 'X' : '')] }),
-                  new TableCell({ children: [VAL(ux === 2 ? 'X' : '')] }),
-                  new TableCell({ children: [VAL(tp === 0 ? 'X' : '')] }),
-                  new TableCell({ children: [VAL(tp === 1 ? 'X' : '')] }),
+                  TD(ux === 0 ? 'X' : ''),
+                  TD(ux === 1 ? 'X' : ''),
+                  TD(ux === 2 ? 'X' : ''),
+                  TD(tp === 0 ? 'X' : ''),
+                  TD(tp === 1 ? 'X' : ''),
                 ],
               }),
             ],
@@ -215,8 +223,8 @@ export async function exportDocx(r: ChangeRequest): Promise<void> {
                     columnSpan: 3,
                     children: [
                       ...numberedParas(r.testSteps),
-                      VAL(`Gözlənilən: ${r.testExpected || '—'}`),
-                      VAL(`Faktiki: ${r.testActual || '—'}`),
+                      P(`Gözlənilən: ${r.testExpected || '—'}`),
+                      P(`Faktiki: ${r.testActual || '—'}`),
                     ],
                   }),
                 ],
@@ -230,30 +238,30 @@ export async function exportDocx(r: ChangeRequest): Promise<void> {
                       .split(/\r?\n/)
                       .map((s) => s.trim())
                       .filter(Boolean)
-                      .map((l) => VAL(l)),
+                      .map((l) => P(l)),
                   }),
                 ],
               }),
               new TableRow({
                 children: [
-                  new TableCell({ rowSpan: 4, children: [LBL('TƏSİRƏ MƏRUZ QALAN ƏRAZİLƏR')] }),
-                  new TableCell({ children: [LBL('SİSTEM')] }),
-                  new TableCell({ children: [VAL([r.system, r.modules].filter(Boolean).join(' — '))] }),
+                  new TableCell({ rowSpan: 4, shading: { fill: LABEL }, children: [P('TƏSİRƏ MƏRUZ QALAN ƏRAZİLƏR', true)] }),
+                  TH('SİSTEM', VALUE),
+                  new TableCell({ children: [P([r.system, r.modules].filter(Boolean).join(' — '))] }),
                 ],
               }),
               new TableRow({
-                children: [new TableCell({ children: [LBL('ALT SİSTEM')] }), new TableCell({ children: [VAL(r.subsystem)] })],
+                children: [TH('ALT SİSTEM', VALUE), new TableCell({ children: [P(r.subsystem)] })],
               }),
               new TableRow({
                 children: [
-                  new TableCell({ children: [LBL('DOWNTIME (standart əlavə)')] }),
-                  new TableCell({ children: [VAL(`${r.downtime}${r.downtimeDuration ? ` — ${r.downtimeDuration}` : ''}`)] }),
+                  TH('DOWNTIME (standart əlavə)', VALUE),
+                  new TableCell({ children: [P(`${r.downtime}${r.downtimeDuration ? ` — ${r.downtimeDuration}` : ''}`)] }),
                 ],
               }),
               new TableRow({
                 children: [
-                  new TableCell({ children: [LBL('İSTİFADƏÇİ TƏSİRİ (standart əlavə)')] }),
-                  new TableCell({ children: [VAL(r.userImpact)] }),
+                  TH('İSTİFADƏÇİ TƏSİRİ (standart əlavə)', VALUE),
+                  new TableCell({ children: [P(r.userImpact)] }),
                 ],
               }),
             ],
@@ -266,38 +274,26 @@ export async function exportDocx(r: ChangeRequest): Promise<void> {
             rows: [
               new TableRow({
                 children: [
-                  new TableCell({ columnSpan: 2, children: [LBL('QƏRAR')] }),
-                  new TableCell({ children: [LBL('TƏSDİQLƏYƏNİN ADI VƏ VƏZİFƏSİ')] }),
-                  new TableCell({ children: [LBL('İMZA')] }),
-                  new TableCell({ children: [LBL('TARİX')] }),
+                  new TableCell({ columnSpan: 2, children: [P('QƏRAR', true)] }),
+                  new TableCell({ children: [P('TƏSDİQLƏYƏNİN ADI VƏ VƏZİFƏSİ', true)] }),
+                  new TableCell({ children: [P('İMZA', true)] }),
+                  new TableCell({ children: [P('TARİX', true)] }),
                 ],
               }),
               new TableRow({
                 children: [
-                  new TableCell({ children: [VAL('')] }),
-                  new TableCell({ children: [VAL('TƏSDİQLƏNİB')] }),
-                  new TableCell({ children: [VAL('')] }),
-                  new TableCell({ children: [VAL('')] }),
-                  new TableCell({ children: [VAL('')] }),
+                  TD(''),
+                  TD('TƏSDİQLƏNİB', LABEL),
+                  TD(''),
+                  TD(''),
+                  TD(''),
                 ],
               }),
               new TableRow({
-                children: [
-                  new TableCell({ children: [VAL('')] }),
-                  new TableCell({ children: [VAL('İMTİNA EDİLİB')] }),
-                  new TableCell({ children: [VAL('')] }),
-                  new TableCell({ children: [VAL('')] }),
-                  new TableCell({ children: [VAL('')] }),
-                ],
+                children: [TD(''), TD('İMTİNA EDİLİB', H2), TD(''), TD(''), TD('')],
               }),
               new TableRow({
-                children: [
-                  new TableCell({ children: [VAL('')] }),
-                  new TableCell({ children: [VAL('ƏLAVƏ MƏLUMAT TƏLƏB OLUNUR')] }),
-                  new TableCell({ children: [VAL('')] }),
-                  new TableCell({ children: [VAL('')] }),
-                  new TableCell({ children: [VAL('')] }),
-                ],
+                children: [TD(''), TD('ƏLAVƏ MƏLUMAT TƏLƏB OLUNUR', VALUE), TD(''), TD(''), TD('')],
               }),
             ],
           }),

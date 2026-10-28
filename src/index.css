@@ -27,6 +27,10 @@ html.dark body {
 @media print {
   .no-print { display: none !important; }
   html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
+  #a4-preview, #a4-preview * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   #a4-preview {
     box-shadow: none !important;
     margin: 0 !important;

@@ -329,30 +329,30 @@ export default function App() {
             <table className="w-full border-collapse border border-black text-[10pt] mb-2">
               <tbody>
                 <tr>
-                  <td colSpan={2} className="border border-black p-1 font-bold">DƏYİŞİKLİYİN ADI</td>
-                  <td className="border border-black p-1">{form.title || '—'}</td>
-                  <td className="border border-black p-1 font-bold">DƏYİŞİK №.</td>
+                  <td colSpan={2} className="border border-black p-1 font-bold bg-[#D4E5E5]">DƏYİŞİKLİYİN ADI</td>
+                  <td className="border border-black p-1 bg-[#EFF5F4]">{form.title || '—'}</td>
+                  <td className="border border-black p-1 font-bold bg-[#D4E5E5]">DƏYİŞİK №.</td>
                   <td className="border border-black p-1">{form.id}</td>
                 </tr>
                 <tr>
-                  <td colSpan={3} rowSpan={2} className="border border-black p-1 align-top">{form.summary || form.title || '—'}</td>
-                  <td className="border border-black p-1 font-bold">DƏYİŞİKLİK STATUSU</td>
+                  <td colSpan={3} rowSpan={2} className="border border-black p-1 align-top bg-[#EFF5F4]">{form.summary || form.title || '—'}</td>
+                  <td className="border border-black p-1 font-bold bg-[#D4E5E5]">DƏYİŞİKLİK STATUSU</td>
                   <td className="border border-black p-1">{form.status}</td>
                 </tr>
                 <tr>
-                  <td className="border border-black p-1 font-bold">TARİX</td>
+                  <td className="border border-black p-1 font-bold bg-[#D4E5E5]">TARİX</td>
                   <td className="border border-black p-1">{form.date}</td>
                 </tr>
                 <tr>
-                  <td className="border border-black p-1 font-bold">LAYİHƏ</td>
-                  <td colSpan={2} className="border border-black p-1">{form.project || '—'}</td>
-                  <td className="border border-black p-1 font-bold">VAXT</td>
+                  <td className="border border-black p-1 font-bold bg-[#D4E5E5]">LAYİHƏ</td>
+                  <td colSpan={2} className="border border-black p-1 bg-[#EFF5F4]">{form.project || '—'}</td>
+                  <td className="border border-black p-1 font-bold bg-[#D4E5E5]">VAXT</td>
                   <td className="border border-black p-1">{form.time}</td>
                 </tr>
                 <tr>
-                  <td className="border border-black p-1 font-bold">REPO / MR LİNKİ</td>
-                  <td colSpan={2} className="border border-black p-1 whitespace-pre-wrap">{[form.repoUrl, form.mrUrl && form.mrIid ? `${form.mrUrl} (${form.mrIid})` : form.mrUrl || form.mrIid, form.sourceBranch ? `${form.sourceBranch} → ${form.targetBranch}` : ''].filter(Boolean).join('\n') || '—'}</td>
-                  <td className="border border-black p-1 font-bold">SƏRF OLUNAN VAXT</td>
+                  <td className="border border-black p-1 font-bold bg-[#D4E5E5]">REPO / MR LİNKİ</td>
+                  <td colSpan={2} className="border border-black p-1 whitespace-pre-wrap bg-[#EFF5F4]">{[form.repoUrl, form.mrUrl && form.mrIid ? `${form.mrUrl} (${form.mrIid})` : form.mrUrl || form.mrIid, form.sourceBranch ? `${form.sourceBranch} → ${form.targetBranch}` : ''].filter(Boolean).join('\n') || '—'}</td>
+                  <td className="border border-black p-1 font-bold bg-[#D4E5E5]">SƏRF OLUNAN VAXT</td>
                   <td className="border border-black p-1">{form.spentMinutes ? `${form.spentMinutes} dəqiqə` : '—'}</td>
                 </tr>
               </tbody>
@@ -361,9 +361,9 @@ export default function App() {
             <table className="w-full border-collapse border border-black text-[10pt] mb-2">
               <tbody>
                 <tr>
-                  <td className="border border-black p-1 font-bold">SORĞUNU YARADAN</td>
-                  <td className="border border-black p-1 font-bold">SORĞU</td>
-                  <td className="border border-black p-1 font-bold">ƏLAQƏ MƏLUMATI</td>
+                  <td className="border border-black p-1 font-bold bg-[#EDEDED]">SORĞUNU YARADAN</td>
+                  <td className="border border-black p-1 font-bold bg-[#EDEDED]">SORĞU</td>
+                  <td className="border border-black p-1 font-bold bg-[#EDEDED]">ƏLAQƏ MƏLUMATI</td>
                 </tr>
                 <tr>
                   <td className="border border-black p-1">{form.author || '—'}</td>
@@ -377,12 +377,12 @@ export default function App() {
               <tbody>
                 <tr>
                   <td rowSpan={2} className="border border-black p-1 font-bold">SORĞU VACİBLİYİ</td>
-                  <td className="border border-black p-1 font-bold">AŞAĞI</td>
-                  <td className="border border-black p-1 font-bold">ORTA</td>
-                  <td className="border border-black p-1 font-bold">YÜKSƏK</td>
+                  <td className="border border-black p-1 font-bold bg-[#EFF5F4]">AŞAĞI</td>
+                  <td className="border border-black p-1 font-bold bg-[#DDEFED]">ORTA</td>
+                  <td className="border border-black p-1 font-bold bg-[#D4E5E5]">YÜKSƏK</td>
                   <td rowSpan={2} className="border border-black p-1 font-bold">DƏYİŞİKLİYİN NÖVÜ</td>
-                  <td className="border border-black p-1 font-bold">NORMAL</td>
-                  <td className="border border-black p-1 font-bold">EMERGENCY</td>
+                  <td className="border border-black p-1 font-bold bg-[#E7E7E7]">NORMAL</td>
+                  <td className="border border-black p-1 font-bold bg-[#DBDBDB]">EMERGENCY</td>
                 </tr>
                 <tr>
                   <td className="border border-black p-1 font-bold">{form.urgency === 'Aşağı' ? 'X' : ''}</td>
@@ -412,20 +412,20 @@ export default function App() {
                 <PrevSection title="GERİ DÖNMƏ PLANI" />
                 <tr><td colSpan={3} className="border border-black p-1 whitespace-pre-wrap">{form.rollbackSteps || '—'}</td></tr>
                 <tr>
-                  <td rowSpan={4} className="border border-black p-1 font-bold">TƏSİRƏ MƏRUZ QALAN ƏRAZİLƏR</td>
-                  <td className="border border-black p-1 font-bold">SİSTEM</td>
+                  <td rowSpan={4} className="border border-black p-1 font-bold bg-[#D4E5E5]">TƏSİRƏ MƏRUZ QALAN ƏRAZİLƏR</td>
+                  <td className="border border-black p-1 font-bold bg-[#EFF5F4]">SİSTEM</td>
                   <td className="border border-black p-1">{[form.system, form.modules].filter(Boolean).join(' — ') || '—'}</td>
                 </tr>
                 <tr>
-                  <td className="border border-black p-1 font-bold">ALT SİSTEM</td>
+                  <td className="border border-black p-1 font-bold bg-[#EFF5F4]">ALT SİSTEM</td>
                   <td className="border border-black p-1">{form.subsystem || '—'}</td>
                 </tr>
                 <tr>
-                  <td className="border border-black p-1 font-bold">DOWNTIME</td>
+                  <td className="border border-black p-1 font-bold bg-[#EFF5F4]">DOWNTIME</td>
                   <td className="border border-black p-1">{form.downtime}{form.downtimeDuration ? ` — ${form.downtimeDuration}` : ''}</td>
                 </tr>
                 <tr>
-                  <td className="border border-black p-1 font-bold">İSTİFADƏÇİ TƏSİRİ</td>
+                  <td className="border border-black p-1 font-bold bg-[#EFF5F4]">İSTİFADƏÇİ TƏSİRİ</td>
                   <td className="border border-black p-1">{form.userImpact || '—'}</td>
                 </tr>
               </tbody>
@@ -441,21 +441,21 @@ export default function App() {
                 </tr>
                 <tr>
                   <td className="border border-black p-1"></td>
-                  <td className="border border-black p-1">TƏSDİQLƏNİB</td>
+                  <td className="border border-black p-1 bg-[#D4E5E5]">TƏSDİQLƏNİB</td>
                   <td className="border border-black p-1"></td>
                   <td className="border border-black p-1"></td>
                   <td className="border border-black p-1"></td>
                 </tr>
                 <tr>
                   <td className="border border-black p-1"></td>
-                  <td className="border border-black p-1">İMTİNA EDİLİB</td>
+                  <td className="border border-black p-1 bg-[#EDEDED]">İMTİNA EDİLİB</td>
                   <td className="border border-black p-1"></td>
                   <td className="border border-black p-1"></td>
                   <td className="border border-black p-1"></td>
                 </tr>
                 <tr>
                   <td className="border border-black p-1"></td>
-                  <td className="border border-black p-1">ƏLAVƏ MƏLUMAT TƏLƏB OLUNUR</td>
+                  <td className="border border-black p-1 bg-[#EFF5F4]">ƏLAVƏ MƏLUMAT TƏLƏB OLUNUR</td>
                   <td className="border border-black p-1"></td>
                   <td className="border border-black p-1"></td>
                   <td className="border border-black p-1"></td>
@@ -474,7 +474,7 @@ export default function App() {
 
 function PrevSection({ title }: { title: string }) {
   return (
-    <tr><td colSpan={3} className="border border-black p-1 font-bold bg-slate-100">{title}</td></tr>
+    <tr><td colSpan={3} className="border border-black p-1 font-bold bg-[#D4E5E5]">{title}</td></tr>
   );
 }
 
