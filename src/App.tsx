@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { emptyRequest, validate, type ChangeRequest } from './types';
 import { loadConfig, nextId, peekNextId, saveConfig, saveToHistory, listHistory, loadDoc } from './lib/store';
 import { exportDocx } from './lib/docxBuilder';
+import { fetchMR, loadGitLabConfig, saveGitLabConfig } from './lib/gitlab';
 
 type Tab = 'esas' | 'git' | 'tesir' | 'rollback';
 const DRAFT_KEY = 'changeflow.draft';
@@ -36,6 +37,9 @@ export default function App() {
   const [errors, setErrors] = useState<string[]>([]);
   const [history, setHistory] = useState<string[]>(() => listHistory());
   const [cfg, setCfg] = useState(() => loadConfig());
+  const [gl, setGl] = useState(() => loadGitLabConfig());
+  const [glStatus, setGlStatus] = useState('');
+  const [glLoading, setGlLoading] = useState(false);
   const orgLogo = useMemo(() => cfg.logoDataUrl || '/logo-gold.svg', [cfg.logoDataUrl]);
 
   useEffect(() => {
@@ -204,7 +208,51 @@ export default function App() {
               </div>
               <Field label="Commit-lər" en="Commits"><textarea rows={3} className={inputCls} value={form.commits} onChange={(e) => set('commits', e.target.value)} placeholder="abc1234 mesaj" /></Field>
               <Field label="Diff stat" en="Diff"><input className={inputCls} value={form.diffStat} onChange={(e) => set('diffStat', e.target.value)} placeholder="+123/-45, 6 fayl" /></Field>
-              <p className="text-xs text-slate-500">Faza-2-də MR linkdən avtomatik dolacaq (GitLab self-hosted).</p>
+              <div className="mt-2 rounded-lg border border-slate-200 dark:border-white/10 p-3">
+                <b className="text-sm">GitLab bağlantısı / Connection</b>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <Field label="Base URL" en="GitLab"><input className={inputCls} value={gl.baseUrl} onChange={(e) => { const v = { ...gl, baseUrl: e.target.value }; setGl(v); saveGitLabConfig(v); }} /></Field>
+                  <Field label="Token" en="Private token"><input type="password" className={inputCls} value={gl.token} onChange={(e) => { const v = { ...gl, token: e.target.value }; setGl(v); saveGitLabConfig(v); }} placeholder="təkcə app-də saxlanılır" /></Field>
+                </div>
+                <Field label="Layihə" en="Project path or ID"><input className={inputCls} value={gl.project} onChange={(e) => { const v = { ...gl, project: e.target.value }; setGl(v); saveGitLabConfig(v); }} placeholder="programming-team/e-services/emios-webapp" /></Field>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={glLoading}
+                    className="btn-primary px-3 py-1.5 text-sm rounded-lg disabled:opacity-50"
+                    onClick={async () => {
+                      if (!gl.token || !gl.project || !form.mrIid) {
+                        setGlStatus('Token, layihə və MR IID lazımdır / required');
+                        return;
+                      }
+                      setGlLoading(true);
+                      setGlStatus('Yüklənir / Loading...');
+                      try {
+                        const info = await fetchMR(gl, form.mrIid);
+                        setForm((f) => ({
+                          ...f,
+                          title: f.title || info.title,
+                          repoUrl: f.repoUrl || info.repoUrl,
+                          mrUrl: info.webUrl || f.mrUrl,
+                          sourceBranch: info.sourceBranch || f.sourceBranch,
+                          targetBranch: info.targetBranch || f.targetBranch,
+                          commits: info.commits || f.commits,
+                          diffStat: info.diffStat || f.diffStat,
+                          author: f.author || info.author,
+                        }));
+                        setGlStatus('OK — MR məlumatı dolduruldu');
+                      } catch (e) {
+                        setGlStatus(`Xəta / Error: ${e instanceof Error ? e.message : String(e)}`);
+                      } finally {
+                        setGlLoading(false);
+                      }
+                    }}
+                  >
+                    {glLoading ? 'Yüklənir...' : 'MR-i gətir / Fetch'}
+                  </button>
+                  {glStatus && <span className="text-xs text-slate-500">{glStatus}</span>}
+                </div>
+                <p className="text-[11px] text-slate-500 mt-2">Token yalnız bu cihazda saxlanılır, heç yerə göndərilmir (GitLab-dan başqa).</p>
+              </div>
             </>
           )}
 
