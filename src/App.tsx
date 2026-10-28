@@ -33,7 +33,48 @@ export default function App() {
   const [glLoading, setGlLoading] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [lang, setLang] = useState<Lang>(() => loadLang());
+  const [appVersion, setAppVersion] = useState('');
+  const [updateInfo, setUpdateInfo] = useState<{ version: string; body?: string } | null>(null);
+  const [updateMsg, setUpdateMsg] = useState('');
   const orgLogo = useMemo(() => cfg.logoDataUrl || '/logo-gold.svg', [cfg.logoDataUrl]);
+
+  const runUpdateCheck = async (silent: boolean) => {
+    try {
+      const { isDesktop } = await import('./lib/secrets');
+      if (!isDesktop()) return;
+      const { getVersion } = await import('@tauri-apps/api/app');
+      setAppVersion(await getVersion());
+      const { check } = await import('@tauri-apps/plugin-updater');
+      const update = await check();
+      if (update) {
+        setUpdateInfo({ version: update.version, body: update.body });
+      } else if (!silent) {
+        setUpdateMsg(t(lang, 'updLatest'));
+      }
+    } catch {
+      if (!silent) setUpdateMsg(t(lang, 'updError'));
+    }
+  };
+
+  const installUpdate = async () => {
+    try {
+      const { check } = await import('@tauri-apps/plugin-updater');
+      const update = await check();
+      if (!update) return;
+      setUpdateMsg('0%');
+      await update.downloadAndInstall((e) => {
+        if (e.event === 'Progress') setUpdateMsg('…');
+        if (e.event === 'Finished') setUpdateMsg(t(lang, 'loading'));
+      });
+    } catch {
+      setUpdateMsg(t(lang, 'updError'));
+    }
+  };
+
+  useEffect(() => {
+    runUpdateCheck(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function Field(props: { label: string; en: string; children: React.ReactNode }) {
     const primary = lang === 'az' ? props.label : props.en;
@@ -60,6 +101,20 @@ export default function App() {
   useEffect(() => {
     setForm((f) => ({ ...f, orgName: f.orgName || cfg.orgName }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { isDesktop, migrateLocalSecrets, getSecret } = await import('./lib/secrets');
+        if (!isDesktop()) return;
+        await migrateLocalSecrets();
+        const tk = await getSecret('gitlab-token');
+        if (tk) setGl((g) => (g.token ? g : { ...g, token: tk }));
+      } catch {
+        /* ignore */
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -163,7 +218,19 @@ export default function App() {
         gl={gl}
         onGl={setGl}
         onDataChange={() => setHistory(listHistory())}
+        version={appVersion}
+        onCheckUpdate={() => runUpdateCheck(false)}
+        updateMsg={updateMsg}
       />
+      {updateInfo && (
+        <div className="no-print mx-4 mt-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-300 p-3 text-sm flex items-center gap-3">
+          <b>{t(lang, 'updAvailable')}: {updateInfo.version}</b>
+          {updateInfo.body && <span className="text-xs text-slate-500 line-clamp-1">{updateInfo.body.slice(0, 120)}</span>}
+          <div className="flex-1" />
+          <button onClick={installUpdate} className="btn-primary px-3 py-1 text-sm rounded-lg">{t(lang, 'updInstall')}</button>
+          <button onClick={() => setUpdateInfo(null)} className="px-3 py-1 text-sm rounded-lg border">{t(lang, 'updClose')}</button>
+        </div>
+      )}
 
       {errors.length > 0 && (
         <div className="no-print mx-4 mt-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-300 p-3 text-sm">

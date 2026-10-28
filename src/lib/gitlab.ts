@@ -20,6 +20,8 @@ export interface MRInfo {
   labels: string;
 }
 
+import { isDesktop } from './secrets';
+
 const CFG_KEY = 'changeflow.gitlab';
 
 export function loadGitLabConfig(): GitLabConfig {
@@ -31,7 +33,9 @@ export function loadGitLabConfig(): GitLabConfig {
 }
 
 export function saveGitLabConfig(c: GitLabConfig): void {
-  localStorage.setItem(CFG_KEY, JSON.stringify(c));
+  // Token vault-da saxlanılır, localStorage-ə yazılmır (desktop).
+  const toSave = isDesktop() ? { ...c, token: '' } : c;
+  localStorage.setItem(CFG_KEY, JSON.stringify(toSave));
 }
 
 function apiBase(baseUrl: string): string {

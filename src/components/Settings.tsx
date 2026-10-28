@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { clearDraft, clearHistory } from '../lib/store';
 import type { GitLabConfig } from '../lib/gitlab';
 import { saveGitLabConfig } from '../lib/gitlab';
 import { loadJiraConfig, saveJiraConfig } from '../lib/jira';
+import { getSecret, isDesktop, setSecret } from '../lib/secrets';
 import { t, type Lang } from '../lib/i18n';
 
 const inputCls =
@@ -32,8 +33,23 @@ export default function Settings(props: {
   gl: GitLabConfig;
   onGl: (v: GitLabConfig) => void;
   onDataChange: () => void;
+  version: string;
+  onCheckUpdate: () => void;
+  updateMsg: string;
 }) {
   const [jira, setJira] = useState(loadJiraConfig());
+  const hydrated = useRef(false);
+  useEffect(() => {
+    if (!props.open || hydrated.current || !isDesktop()) return;
+    hydrated.current = true;
+    getSecret('gitlab-token').then((tk) => {
+      if (tk) props.onGl({ ...props.gl, token: tk });
+    }).catch(() => undefined);
+    getSecret('jira-token').then((tk) => {
+      if (tk) setJira((j) => ({ ...j, token: tk }));
+    }).catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.open]);
   if (!props.open) return null;
   const lang = props.lang;
 
@@ -41,6 +57,14 @@ export default function Settings(props: {
     const v = { ...props.gl, ...patch };
     props.onGl(v);
     saveGitLabConfig(v);
+    if (patch.token !== undefined) setSecret('gitlab-token', patch.token);
+  };
+
+  const setJr = (patch: Partial<typeof jira>) => {
+    const v = { ...jira, ...patch };
+    setJira(v);
+    saveJiraConfig(v);
+    if (patch.token !== undefined) setSecret('jira-token', patch.token ?? '');
   };
 
   return (
@@ -84,23 +108,30 @@ export default function Settings(props: {
         </H>
         <div className="opacity-60 pointer-events-none">
           <F label={t(lang, 'sJBase')}>
-            <input className={inputCls} value={jira.baseUrl} onChange={(e) => { const v = { ...jira, baseUrl: e.target.value }; setJira(v); saveJiraConfig(v); }} placeholder="https://jira.sirket.az" />
+            <input className={inputCls} value={jira.baseUrl} onChange={(e) => setJr({ baseUrl: e.target.value })} placeholder="https://jira.sirket.az" />
           </F>
           <div className="grid grid-cols-2 gap-2">
             <F label={t(lang, 'sJEmail')}>
-              <input className={inputCls} value={jira.email} onChange={(e) => { const v = { ...jira, email: e.target.value }; setJira(v); saveJiraConfig(v); }} />
+              <input className={inputCls} value={jira.email} onChange={(e) => setJr({ email: e.target.value })} />
             </F>
             <F label={t(lang, 'sJToken')}>
-              <input type="password" className={inputCls} value={jira.token} onChange={(e) => { const v = { ...jira, token: e.target.value }; setJira(v); saveJiraConfig(v); }} />
+              <input type="password" className={inputCls} value={jira.token} onChange={(e) => setJr({ token: e.target.value })} />
             </F>
           </div>
           <F label={t(lang, 'sJKey')}>
-            <input className={inputCls} value={jira.projectKey} onChange={(e) => { const v = { ...jira, projectKey: e.target.value }; setJira(v); saveJiraConfig(v); }} placeholder="EMIOS" />
+            <input className={inputCls} value={jira.projectKey} onChange={(e) => setJr({ projectKey: e.target.value })} placeholder="EMIOS" />
           </F>
         </div>
         <p className="text-xs text-slate-500">{t(lang, 'sJNote')}</p>
 
         <H>{t(lang, 'sData')}</H>
+        <F label={t(lang, 'sVersion')}>
+          <div className="flex items-center gap-2">
+            <span className="text-sm">{props.version || '…'}</span>
+            <button onClick={props.onCheckUpdate} className="px-3 py-1 text-sm rounded-lg border border-slate-300 dark:border-white/10">{t(lang, 'sCheckUpd')}</button>
+            {props.updateMsg && <span className="text-xs text-slate-500">{props.updateMsg}</span>}
+          </div>
+        </F>
         <div className="flex gap-2 text-sm">
           <button
             className="px-3 py-1.5 rounded-lg border border-red-300 text-red-600"

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "ChangeFlow",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "identifier": "com.hidayetov.changeflow",
   "build": {
     "frontendDist": "../dist",
@@ -28,6 +28,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": "v1Compatible",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -37,6 +38,16 @@
     ],
     "android": {
       "debugApplicationIdSuffix": ".debug"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/HidayetHidayetov/changeflow/releases/latest/download/latest.json"
+      ],
+      "dialog": false,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlCODRDNDk2MDJCQTlDRkIKUldUN25Mb0Nsc1NFbTJPTS96NXZjNUtoR1VFRFI1WTllZHlQWXJocFpjMnVISkJTZE5ZSG41azMK"
     }
   }
 }

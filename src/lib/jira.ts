@@ -8,6 +8,8 @@ export interface JiraConfig {
   projectKey: string;
 }
 
+import { isDesktop } from './secrets';
+
 const CFG_KEY = 'changeflow.jira';
 export const JIRA_ENABLED = false;
 
@@ -20,5 +22,6 @@ export function loadJiraConfig(): JiraConfig {
 }
 
 export function saveJiraConfig(c: JiraConfig): void {
-  localStorage.setItem(CFG_KEY, JSON.stringify(c));
+  const toSave = isDesktop() ? { ...c, token: '' } : c;
+  localStorage.setItem(CFG_KEY, JSON.stringify(toSave));
 }
