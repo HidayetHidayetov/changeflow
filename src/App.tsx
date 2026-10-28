@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { emptyRequest, validate, type ChangeRequest } from './types';
 import { loadConfig, nextId, peekNextId, projectCode, saveConfig, saveToHistory, listHistory, loadDoc } from './lib/store';
 import { exportDocx } from './lib/docxBuilder';
-import { fetchMR, loadGitLabConfig, saveGitLabConfig } from './lib/gitlab';
+import { fetchMR, loadGitLabConfig } from './lib/gitlab';
+import Settings from './components/Settings';
 
 type Tab = 'esas' | 'git' | 'tesir' | 'rollback';
 const DRAFT_KEY = 'changeflow.draft';
@@ -40,6 +41,7 @@ export default function App() {
   const [gl, setGl] = useState(() => loadGitLabConfig());
   const [glStatus, setGlStatus] = useState('');
   const [glLoading, setGlLoading] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const orgLogo = useMemo(() => cfg.logoDataUrl || '/logo-gold.svg', [cfg.logoDataUrl]);
 
   useEffect(() => {
@@ -127,15 +129,27 @@ export default function App() {
         <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10" title="Dark/Light">
           {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
         </button>
-        <label className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10 cursor-pointer">
-          Logo
-          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleLogo(e.target.files?.[0])} />
-        </label>
-        <button onClick={resetLogo} className="px-2 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-white/10" title="Default qızıl logoya qayıt">Reset</button>
+        <button onClick={() => setSettingsOpen(true)} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10">⚙ Ayarlar</button>
         <button onClick={handleNew} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10">Yeni / New</button>
         <button onClick={handleExportDocx} className="btn-primary px-3 py-1.5 text-sm rounded-lg">Word yüklə</button>
         <button onClick={handlePrint} className="px-3 py-1.5 text-sm rounded-lg bg-slate-900 text-white dark:bg-white dark:text-slate-900">PDF / Çap et</button>
       </header>
+      <Settings
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        orgName={form.orgName}
+        onOrgName={(v) => {
+          setForm((f) => ({ ...f, orgName: v }));
+          const c = { orgName: v, logoDataUrl: cfg.logoDataUrl, theme: 'system' as const };
+          saveConfig(c);
+          setCfg(c);
+        }}
+        onLogo={handleLogo}
+        onLogoReset={resetLogo}
+        gl={gl}
+        onGl={setGl}
+        onDataChange={() => setHistory(listHistory())}
+      />
 
       {errors.length > 0 && (
         <div className="no-print mx-4 mt-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-300 p-3 text-sm">
@@ -210,12 +224,12 @@ export default function App() {
               <Field label="Commit-lər" en="Commits"><textarea rows={3} className={inputCls} value={form.commits} onChange={(e) => set('commits', e.target.value)} placeholder="abc1234 mesaj" /></Field>
               <Field label="Diff stat" en="Diff"><input className={inputCls} value={form.diffStat} onChange={(e) => set('diffStat', e.target.value)} placeholder="+123/-45, 6 fayl" /></Field>
               <div className="mt-2 rounded-lg border border-slate-200 dark:border-white/10 p-3">
-                <b className="text-sm">GitLab bağlantısı / Connection</b>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <Field label="Base URL" en="GitLab"><input className={inputCls} value={gl.baseUrl} onChange={(e) => { const v = { ...gl, baseUrl: e.target.value }; setGl(v); saveGitLabConfig(v); }} /></Field>
-                  <Field label="Token" en="Private token"><input type="password" className={inputCls} value={gl.token} onChange={(e) => { const v = { ...gl, token: e.target.value }; setGl(v); saveGitLabConfig(v); }} placeholder="təkcə app-də saxlanılır" /></Field>
+                <div className="flex items-center gap-2 mb-1">
+                  <b className="text-sm">GitLab-dan doldur / Fetch from GitLab</b>
+                  <div className="flex-1" />
+                  <button className="text-xs text-blue-600 underline" onClick={() => setSettingsOpen(true)}>Ayarlar / Settings</button>
                 </div>
-                <Field label="Layihə" en="Project path or ID"><input className={inputCls} value={gl.project} onChange={(e) => { const v = { ...gl, project: e.target.value }; setGl(v); saveGitLabConfig(v); }} placeholder="programming-team/e-services/emios-webapp" /></Field>
+                <div className="text-xs text-slate-500 mb-2">{gl.baseUrl} • {gl.project || 'layihə seçilməyib — Ayarlardan əlavə et'}</div>
                 <div className="flex items-center gap-2">
                   <button
                     disabled={glLoading}

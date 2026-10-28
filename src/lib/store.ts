@@ -60,6 +60,20 @@ export function listHistory(): string[] {
   }
 }
 
+export function clearHistory(): void {
+  try {
+    const arr = listHistory();
+    for (const id of arr) localStorage.removeItem(`changeflow.doc.${id}`);
+    localStorage.removeItem(HISTORY_KEY);
+  } catch { /* ignore */ }
+}
+
+export function clearDraft(): void {
+  try {
+    localStorage.removeItem('changeflow.draft');
+  } catch { /* ignore */ }
+}
+
 /** GitLab layihə yolundan qısa kod: "a/b/emios-webapp" → "EMIOS-WEBAPP" */
 export function projectCode(projectPath: string): string {
   const clean = projectPath.replace(/^\/+/, '').replace(/\/+$/, '');
