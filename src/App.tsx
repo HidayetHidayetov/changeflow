@@ -129,7 +129,7 @@ export default function App() {
         </label>
         <button onClick={resetLogo} className="px-2 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-white/10" title="Default qızıl logoya qayıt">Reset</button>
         <button onClick={handleNew} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10">Yeni / New</button>
-        <button onClick={handleExportDocx} className="btn-primary px-3 py-1.5 text-sm rounded-lg">Word ixrac</button>
+        <button onClick={handleExportDocx} className="btn-primary px-3 py-1.5 text-sm rounded-lg">Word yüklə</button>
         <button onClick={handlePrint} className="px-3 py-1.5 text-sm rounded-lg bg-slate-900 text-white dark:bg-white dark:text-slate-900">PDF / Çap et</button>
       </header>
 
@@ -146,7 +146,7 @@ export default function App() {
           <div className="flex gap-1 mb-4 text-sm">
             {(['esas', 'git', 'tesir', 'rollback'] as Tab[]).map((t) => (
               <button key={t} onClick={() => setTab(t)}
-                className={`px-3 py-1.5 rounded-lg ${tab === t ? 'text-[#06121f] bg-gradient-to-br from-[#4F8FF7] to-[#2DD4BF] font-semibold' : 'bg-slate-100 dark:bg-white/5'}`}>
+                className={`px-3 py-1.5 rounded-lg ${tab === t ? 'bg-[#1D4ED8] text-white font-semibold' : 'bg-slate-100 dark:bg-white/5'}`}>
                 {t === 'esas' ? 'Əsas' : t === 'git' ? 'Git' : t === 'tesir' ? 'Təsir/Test' : 'Rollback'}
               </button>
             ))}
@@ -291,9 +291,8 @@ export default function App() {
               <div className="p-2 border-b">İmza: _______</div>
               <div className="p-2 border-b">Tarix: _______</div>
             </div>
-            <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-              <span>{form.id} | {form.orgName}</span>
-              <span className="inline-flex items-center gap-1"><img src="/app-logo.svg" className="w-4 h-4" alt="" /> ChangeFlow ilə hazırlandı</span>
+            <div className="mt-2 text-center text-xs text-slate-500">
+              {form.id} | {form.orgName} | Səhifə 1/1
             </div>
           </div>
         </section>

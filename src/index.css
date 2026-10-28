@@ -16,11 +16,11 @@ html.dark body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--cf-accent1), var(--cf-accent2));
-  color: #06121f;
+  background: #1d4ed8;
+  color: #ffffff;
   font-weight: 600;
 }
-.btn-primary:hover { filter: brightness(1.08); }
+.btn-primary:hover { background: #1e40af; }
 
 @media print {
   .no-print { display: none !important; }
