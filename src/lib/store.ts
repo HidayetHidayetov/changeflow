@@ -60,6 +60,14 @@ export function listHistory(): string[] {
   }
 }
 
+/** GitLab layihə yolundan qısa kod: "a/b/emios-webapp" → "EMIOS-WEBAPP" */
+export function projectCode(projectPath: string): string {
+  const clean = projectPath.replace(/^\/+/, '').replace(/\/+$/, '');
+  const last = clean.split('/').pop() ?? clean;
+  const code = last.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return code || 'PRJ';
+}
+
 export interface AppConfig {
   orgName: string;
   logoDataUrl: string;

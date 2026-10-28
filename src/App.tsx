@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { emptyRequest, validate, type ChangeRequest } from './types';
-import { loadConfig, nextId, peekNextId, saveConfig, saveToHistory, listHistory, loadDoc } from './lib/store';
+import { loadConfig, nextId, peekNextId, projectCode, saveConfig, saveToHistory, listHistory, loadDoc } from './lib/store';
 import { exportDocx } from './lib/docxBuilder';
 import { fetchMR, loadGitLabConfig, saveGitLabConfig } from './lib/gitlab';
 
@@ -203,10 +203,10 @@ export default function App() {
               <Field label="Repo URL" en="Repository"><input className={inputCls} value={form.repoUrl} onChange={(e) => set('repoUrl', e.target.value)} placeholder="https://gitlab.../emios-webapp" /></Field>
               <Field label="MR link" en="MR URL"><input className={inputCls} value={form.mrUrl} onChange={(e) => set('mrUrl', e.target.value)} /></Field>
               <div className="grid grid-cols-3 gap-2">
-                <Field label="MR IID" en="IID"><input className={inputCls} value={form.mrIid} onChange={(e) => set('mrIid', e.target.value)} placeholder="!142" /></Field>
-                <Field label="Source" en="Source branch"><input className={inputCls} value={form.sourceBranch} onChange={(e) => set('sourceBranch', e.target.value)} /></Field>
+                <Field label="MR IID" en="IID"><input className={inputCls} value={form.mrIid} onChange={(e) => set('mrIid', e.target.value)} placeholder="!142" /></Field>                <Field label="Source" en="Source branch"><input className={inputCls} value={form.sourceBranch} onChange={(e) => set('sourceBranch', e.target.value)} /></Field>
                 <Field label="Target" en="Target branch"><input className={inputCls} value={form.targetBranch} onChange={(e) => set('targetBranch', e.target.value)} /></Field>
               </div>
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 -mt-1 mb-2">Əl ilə açılan nömrə (CR-...) hər cihazda 0001-dən başlayır — təkrar riski var. Unikal nömrə üçün MR-i bağla, ID avtomatik LAYİHƏ-MRIID olacaq.</p>
               <Field label="Commit-lər" en="Commits"><textarea rows={3} className={inputCls} value={form.commits} onChange={(e) => set('commits', e.target.value)} placeholder="abc1234 mesaj" /></Field>
               <Field label="Diff stat" en="Diff"><input className={inputCls} value={form.diffStat} onChange={(e) => set('diffStat', e.target.value)} placeholder="+123/-45, 6 fayl" /></Field>
               <div className="mt-2 rounded-lg border border-slate-200 dark:border-white/10 p-3">
@@ -233,8 +233,11 @@ export default function App() {
                       setGlStatus('Yüklənir / Loading...');
                       try {
                         const info = await fetchMR(gl, form.mrIid);
+                        const cleanIid = form.mrIid.replace(/^!/, '').trim();
+                        const docId = `${projectCode(gl.project)}-${cleanIid}`;
                         setForm((f) => ({
                           ...f,
+                          id: docId,
                           title: f.title || info.title,
                           repoUrl: f.repoUrl || info.repoUrl,
                           mrUrl: info.webUrl || f.mrUrl,
@@ -244,7 +247,7 @@ export default function App() {
                           diffStat: info.diffStat || f.diffStat,
                           author: f.author || info.author,
                         }));
-                        setGlStatus('OK — MR məlumatı dolduruldu');
+                        setGlStatus(`OK — ID: ${docId} (MR-dən unikal nömrə)`);
                       } catch (e) {
                         setGlStatus(`Xəta / Error: ${e instanceof Error ? e.message : String(e)}`);
                       } finally {
