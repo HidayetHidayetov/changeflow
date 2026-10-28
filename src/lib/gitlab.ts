@@ -14,6 +14,10 @@ export interface MRInfo {
   repoUrl: string;
   commits: string;
   diffStat: string;
+  date: string;
+  time: string;
+  status: string;
+  labels: string;
 }
 
 const CFG_KEY = 'changeflow.gitlab';
@@ -50,6 +54,24 @@ async function httpGet(url: string, token: string): Promise<unknown> {
   return res.json();
 }
 
+function toLocalDateTime(iso: string): { date: string; time: string } {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return { date: '', time: '' };
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return {
+    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+  };
+}
+
+function mapState(state: string, mergedAt: string): string {
+  if (state === 'merged') return 'Təsdiqlənib';
+  if (state === 'closed') return 'İmtina';
+  if (state === 'locked') return 'Təsdiq gözləyir';
+  if (mergedAt) return 'Təsdiqlənib';
+  return 'Təsdiq gözləyir';
+}
+
 export async function fetchMR(cfg: GitLabConfig, iid: string): Promise<MRInfo> {
   const base = apiBase(cfg.baseUrl);
   const cleanProject = cfg.project.replace(/^\/+/, '').replace(/\/+$/, '');
@@ -66,13 +88,20 @@ export async function fetchMR(cfg: GitLabConfig, iid: string): Promise<MRInfo> {
   const ch = changes.changes as Array<Record<string, unknown>> | undefined;
   if (Array.isArray(ch)) {
     files = ch.length;
-    // diff statistika tam dəqiq olmaya bilər — sətir sayı təxmini
+    for (const f of ch) {
+      const diff = String(f.diff ?? '');
+      for (const line of diff.split('\n')) {
+        if (line.startsWith('+++') || line.startsWith('---')) continue;
+        if (line.startsWith('+')) added += 1;
+        else if (line.startsWith('-')) removed += 1;
+      }
+    }
   }
-  const diffStat = files ? `${files} fayl, ${commits.length} commit` : `${commits.length} commit`;
-  void added;
-  void removed;
+  const diffStat = files ? `${files} fayl, +${added}/-${removed}, ${commits.length} commit` : `${commits.length} commit`;
+  const created = toLocalDateTime(String(mr.created_at ?? ''));
 
   const author = mr.author as Record<string, unknown> | undefined;
+  const labels = Array.isArray(mr.labels) ? (mr.labels as string[]).join(', ') : '';
   return {
     title: String(mr.title ?? ''),
     description: String(mr.description ?? ''),
@@ -80,8 +109,12 @@ export async function fetchMR(cfg: GitLabConfig, iid: string): Promise<MRInfo> {
     sourceBranch: String(mr.source_branch ?? ''),
     targetBranch: String(mr.target_branch ?? ''),
     webUrl: String(mr.web_url ?? ''),
-    repoUrl: cfg.project.includes('://') ? cfg.project : `${cfg.baseUrl.replace(/\/+$/, '')}/${cfg.project}`,
+    repoUrl: cfg.project.includes('://') ? cfg.project : `${cfg.baseUrl.replace(/\/+$/, '')}/${cleanProject}`,
     commits: commitLines,
     diffStat,
+    date: created.date,
+    time: created.time,
+    status: mapState(String(mr.state ?? 'opened'), String(mr.merged_at ?? '')),
+    labels,
   };
 }

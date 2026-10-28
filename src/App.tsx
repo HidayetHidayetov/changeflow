@@ -246,8 +246,11 @@ export default function App() {
                           commits: info.commits || f.commits,
                           diffStat: info.diffStat || f.diffStat,
                           author: f.author || info.author,
+                          date: info.date || f.date,
+                          time: info.time || f.time,
+                          status: info.status || f.status,
                         }));
-                        setGlStatus(`OK — ID: ${docId} (MR-dən unikal nömrə)`);
+                        setGlStatus(`OK — ID: ${docId}, tarix/saat/status MR-dən`);
                       } catch (e) {
                         setGlStatus(`Xəta / Error: ${e instanceof Error ? e.message : String(e)}`);
                       } finally {
