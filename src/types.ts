@@ -4,6 +4,7 @@ export type Level = 'Aşağı' | 'Orta' | 'Yüksək';
 export interface ChangeRequest {
   id: string;
   title: string;
+  summary: string;
   project: string;
   status: string;
   date: string;
@@ -44,7 +45,8 @@ export interface ChangeRequest {
 
 export const emptyRequest = (id: string): ChangeRequest => ({
   id,
-  title: 'ProxyController və validasiyalar optimallaşdırıldı',
+  title: 'Proxy və validasiyalar optimallaşdırıldı',
+  summary: '',
   project: 'EMIOS',
   status: 'Təsdiq gözləyir',
   date: new Date().toISOString().slice(0, 10),

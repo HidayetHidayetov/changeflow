@@ -160,6 +160,7 @@ export default function App() {
             <>
               <Field label="Təşkilat" en="Organization"><input className={inputCls} value={form.orgName} onChange={(e) => set('orgName', e.target.value)} /></Field>
               <Field label="Dəyişiklik adı" en="Title"><input className={inputCls} value={form.title} onChange={(e) => set('title', e.target.value)} /></Field>
+              <Field label="Xülasə" en="Summary (blankda başlıq altı)"><input className={inputCls} value={form.summary} onChange={(e) => set('summary', e.target.value)} placeholder="Boşdursa başlıq yazılır" /></Field>
               <div className="grid grid-cols-2 gap-2">
                 <Field label="Layihə" en="Project"><input className={inputCls} value={form.project} onChange={(e) => set('project', e.target.value)} /></Field>
                 <Field label="Status" en="Status">
@@ -312,37 +313,152 @@ export default function App() {
 
         {/* Preview */}
         <section className="flex-1 flex justify-center overflow-auto">
-          <div id="a4-preview" className="shadow-xl p-[15mm] text-[11pt] leading-relaxed">
-            <div className="flex items-center gap-4 border-b-2 border-[#0A0E14] pb-3 mb-3">
-              <img src={orgLogo} alt="org logo" className="h-12 object-contain max-w-[220px]" />
+          <div id="a4-preview" className="shadow-xl p-[12mm] text-[10.5pt] leading-relaxed">
+            <div className="text-center font-bold text-[13pt] mb-1">DƏYİŞİKLİKLƏRİN İDARƏ EDİLMƏSİ BLANKI</div>
+            <div className="flex items-center gap-4 border-b-2 border-black pb-2 mb-2">
+              <img src={orgLogo} alt="org logo" className="h-11 object-contain max-w-[200px]" />
               <div className="flex-1 text-right">
                 <div className="font-bold">{form.orgName || 'Təşkilat'}</div>
-                <div className="font-bold text-lg">DƏYİŞİKLİK SORĞUSU / CHANGE REQUEST — {form.id}</div>
-                <div className="text-xs text-slate-500">{form.date} {form.time} | {form.project} | {form.status}</div>
+                <div className="text-xs">{form.id} | {form.date} {form.time} | {form.project} | {form.status}</div>
               </div>
             </div>
-            <PreviewRow az="Dəyişiklik adı" en="Title" v={form.title} />
-            <PreviewRow az="Müəllif" en="Author" v={`${form.author} ${form.team} ${form.contact}`} />
-            <PreviewRow az="Növ / Vaciblik / Risk" en="Type" v={`${form.type} / ${form.urgency} / ${form.risk} ${form.riskNote}`} />
-            <PreviewRow az="Git" en="Git" v={`${form.repoUrl} ${form.mrUrl} ${form.mrIid} (${form.sourceBranch} → ${form.targetBranch}) ${form.diffStat}`} />
-            <h3 className="font-bold mt-3">Təsvir / Description</h3>
-            <p className="whitespace-pre-wrap">{form.description || '—'}</p>
-            <h3 className="font-bold mt-2">Səbəb / Reason</h3>
-            <p className="whitespace-pre-wrap">{form.reason || '—'}</p>
-            <h3 className="font-bold mt-2">Təsir / Impact</h3>
-            <p>{form.system} {form.subsystem} {form.modules} | İstifadəçi: {form.userImpact || '—'} | Downtime: {form.downtime} {form.downtimeDuration} | {form.spentMinutes} dəq</p>
-            <h3 className="font-bold mt-2">Test / Test plan ({form.testEnv})</h3>
-            <p className="whitespace-pre-wrap">{form.testSteps || '—'}</p>
-            <p><b>Gözlənilən / Expected:</b> {form.testExpected || '—'} | <b>Faktiki / Actual:</b> {form.testActual || '—'}</p>
-            <h3 className="font-bold mt-2">Geri dönmə / Rollback</h3>
-            <p className="whitespace-pre-wrap">{form.rollbackSteps}</p>
-            <p className="text-sm">Məsul / Owner: {form.rollbackOwner || '—'} | ETA: {form.rollbackEta || '—'}</p>
-            <div className="mt-4 grid grid-cols-4 gap-2 border text-sm">
-              <div className="p-2 border-b">☐ Təsdiqlənib<br />☐ İmtina<br />☐ Əlavə məlumat</div>
-              <div className="p-2 border-b">Ad: _______<br />Vəzifə: _______</div>
-              <div className="p-2 border-b">İmza: _______</div>
-              <div className="p-2 border-b">Tarix: _______</div>
-            </div>
+            {/* Cədvəl 1 */}
+            <table className="w-full border-collapse border border-black text-[10pt] mb-2">
+              <tbody>
+                <tr>
+                  <td colSpan={2} className="border border-black p-1 font-bold">DƏYİŞİKLİYİN ADI</td>
+                  <td className="border border-black p-1">{form.title || '—'}</td>
+                  <td className="border border-black p-1 font-bold">DƏYİŞİK №.</td>
+                  <td className="border border-black p-1">{form.id}</td>
+                </tr>
+                <tr>
+                  <td colSpan={3} rowSpan={2} className="border border-black p-1 align-top">{form.summary || form.title || '—'}</td>
+                  <td className="border border-black p-1 font-bold">DƏYİŞİKLİK STATUSU</td>
+                  <td className="border border-black p-1">{form.status}</td>
+                </tr>
+                <tr>
+                  <td className="border border-black p-1 font-bold">TARİX</td>
+                  <td className="border border-black p-1">{form.date}</td>
+                </tr>
+                <tr>
+                  <td className="border border-black p-1 font-bold">LAYİHƏ</td>
+                  <td colSpan={2} className="border border-black p-1">{form.project || '—'}</td>
+                  <td className="border border-black p-1 font-bold">VAXT</td>
+                  <td className="border border-black p-1">{form.time}</td>
+                </tr>
+                <tr>
+                  <td className="border border-black p-1 font-bold">REPO / MR LİNKİ</td>
+                  <td colSpan={2} className="border border-black p-1 whitespace-pre-wrap">{[form.repoUrl, form.mrUrl && form.mrIid ? `${form.mrUrl} (${form.mrIid})` : form.mrUrl || form.mrIid, form.sourceBranch ? `${form.sourceBranch} → ${form.targetBranch}` : ''].filter(Boolean).join('\n') || '—'}</td>
+                  <td className="border border-black p-1 font-bold">SƏRF OLUNAN VAXT</td>
+                  <td className="border border-black p-1">{form.spentMinutes ? `${form.spentMinutes} dəqiqə` : '—'}</td>
+                </tr>
+              </tbody>
+            </table>
+            {/* Cədvəl 2 */}
+            <table className="w-full border-collapse border border-black text-[10pt] mb-2">
+              <tbody>
+                <tr>
+                  <td className="border border-black p-1 font-bold">SORĞUNU YARADAN</td>
+                  <td className="border border-black p-1 font-bold">SORĞU</td>
+                  <td className="border border-black p-1 font-bold">ƏLAQƏ MƏLUMATI</td>
+                </tr>
+                <tr>
+                  <td className="border border-black p-1">{form.author || '—'}</td>
+                  <td className="border border-black p-1">{form.title || '—'}</td>
+                  <td className="border border-black p-1">{form.contact || '—'}</td>
+                </tr>
+              </tbody>
+            </table>
+            {/* Cədvəl 3 */}
+            <table className="w-full border-collapse border border-black text-[10pt] mb-2 text-center">
+              <tbody>
+                <tr>
+                  <td rowSpan={2} className="border border-black p-1 font-bold">SORĞU VACİBLİYİ</td>
+                  <td className="border border-black p-1 font-bold">AŞAĞI</td>
+                  <td className="border border-black p-1 font-bold">ORTA</td>
+                  <td className="border border-black p-1 font-bold">YÜKSƏK</td>
+                  <td rowSpan={2} className="border border-black p-1 font-bold">DƏYİŞİKLİYİN NÖVÜ</td>
+                  <td className="border border-black p-1 font-bold">NORMAL</td>
+                  <td className="border border-black p-1 font-bold">EMERGENCY</td>
+                </tr>
+                <tr>
+                  <td className="border border-black p-1 font-bold">{form.urgency === 'Aşağı' ? 'X' : ''}</td>
+                  <td className="border border-black p-1 font-bold">{form.urgency === 'Orta' ? 'X' : ''}</td>
+                  <td className="border border-black p-1 font-bold">{form.urgency === 'Yüksək' ? 'X' : ''}</td>
+                  <td className="border border-black p-1 font-bold">{form.type !== 'Emergency' ? 'X' : ''}</td>
+                  <td className="border border-black p-1 font-bold">{form.type === 'Emergency' ? 'X' : ''}</td>
+                </tr>
+              </tbody>
+            </table>
+            {/* Cədvəl 4 */}
+            <table className="w-full border-collapse border border-black text-[10pt] mb-2">
+              <tbody>
+                <PrevSection title="DƏYİŞİKLİYİN TƏSVİRİ" />
+                <tr><td colSpan={3} className="border border-black p-1"><PrevList text={form.description} /></td></tr>
+                {form.extra && (<><PrevSection title="ƏLAVƏ MƏLUMAT" /><tr><td colSpan={3} className="border border-black p-1"><PrevList text={form.extra} /></td></tr></>)}
+                <PrevSection title="DƏYİŞİKLİYİN EDİLMƏ SƏBƏBİ" />
+                <tr><td colSpan={3} className="border border-black p-1 whitespace-pre-wrap">{form.reason || '—'}</td></tr>
+                <PrevSection title="RİSK" />
+                <tr><td colSpan={3} className="border border-black p-1">{form.risk}{form.riskNote ? ` — ${form.riskNote}` : ''}</td></tr>
+                <PrevSection title={`TEST PLANI (mühit: ${form.testEnv || '—'})`} />
+                <tr><td colSpan={3} className="border border-black p-1">
+                  <PrevList text={form.testSteps} />
+                  <div>Gözlənilən: {form.testExpected || '—'}</div>
+                  <div>Faktiki: {form.testActual || '—'}</div>
+                </td></tr>
+                <PrevSection title="GERİ DÖNMƏ PLANI" />
+                <tr><td colSpan={3} className="border border-black p-1 whitespace-pre-wrap">{form.rollbackSteps || '—'}</td></tr>
+                <tr>
+                  <td rowSpan={4} className="border border-black p-1 font-bold">TƏSİRƏ MƏRUZ QALAN ƏRAZİLƏR</td>
+                  <td className="border border-black p-1 font-bold">SİSTEM</td>
+                  <td className="border border-black p-1">{[form.system, form.modules].filter(Boolean).join(' — ') || '—'}</td>
+                </tr>
+                <tr>
+                  <td className="border border-black p-1 font-bold">ALT SİSTEM</td>
+                  <td className="border border-black p-1">{form.subsystem || '—'}</td>
+                </tr>
+                <tr>
+                  <td className="border border-black p-1 font-bold">DOWNTIME</td>
+                  <td className="border border-black p-1">{form.downtime}{form.downtimeDuration ? ` — ${form.downtimeDuration}` : ''}</td>
+                </tr>
+                <tr>
+                  <td className="border border-black p-1 font-bold">İSTİFADƏÇİ TƏSİRİ</td>
+                  <td className="border border-black p-1">{form.userImpact || '—'}</td>
+                </tr>
+              </tbody>
+            </table>
+            {/* Cədvəl 5 */}
+            <table className="w-full border-collapse border border-black text-[10pt]">
+              <tbody>
+                <tr>
+                  <td colSpan={2} className="border border-black p-1 font-bold">QƏRAR</td>
+                  <td className="border border-black p-1 font-bold">TƏSDİQLƏYƏNİN ADI VƏ VƏZİFƏSİ</td>
+                  <td className="border border-black p-1 font-bold">İMZA</td>
+                  <td className="border border-black p-1 font-bold">TARİX</td>
+                </tr>
+                <tr>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1">TƏSDİQLƏNİB</td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1"></td>
+                </tr>
+                <tr>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1">İMTİNA EDİLİB</td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1"></td>
+                </tr>
+                <tr>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1">ƏLAVƏ MƏLUMAT TƏLƏB OLUNUR</td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1"></td>
+                </tr>
+              </tbody>
+            </table>
             <div className="mt-2 text-center text-xs text-slate-500">
               {form.id} | {form.orgName} | Səhifə 1/1
             </div>
@@ -353,11 +469,18 @@ export default function App() {
   );
 }
 
-function PreviewRow({ az, en, v }: { az: string; en: string; v: string }) {
+function PrevSection({ title }: { title: string }) {
   return (
-    <div className="grid grid-cols-[180px_1fr] gap-2 border-b py-1 text-sm">
-      <div><b>{az}</b> <span className="text-xs text-slate-500">/ {en}</span></div>
-      <div>{v || '—'}</div>
-    </div>
+    <tr><td colSpan={3} className="border border-black p-1 font-bold bg-slate-100">{title}</td></tr>
+  );
+}
+
+function PrevList({ text }: { text: string }) {
+  const items = text.split(/\r?\n/).map((s) => s.replace(/^\s*\d+[.)]\s*/, '').trim()).filter(Boolean);
+  if (items.length === 0) return <>—</>;
+  return (
+    <ol className="list-decimal ml-5">
+      {items.map((l, i) => <li key={i}>{l}</li>)}
+    </ol>
   );
 }
