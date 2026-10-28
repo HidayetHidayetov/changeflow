@@ -11,8 +11,20 @@
   --cf-gold: #d1b180;
 }
 
+html.dark { color-scheme: dark; }
+
 html.dark body {
   background: var(--cf-bg);
+}
+
+select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+html.dark select option {
+  background: #1e293b;
+  color: #f1f5f9;
 }
 
 .btn-primary {

@@ -19,7 +19,7 @@ function Field(props: { label: string; en: string; children: React.ReactNode }) 
 }
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#4F8FF7] dark:text-slate-100 placeholder:text-slate-400';
+  'w-full rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400';
 
 function loadDraft(): ChangeRequest | null {
   try {
