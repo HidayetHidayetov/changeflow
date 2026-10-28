@@ -22,13 +22,19 @@ html.dark body {
 }
 .btn-primary:hover { background: #1e40af; }
 
+@page { size: A4; margin: 11mm; }
+
 @media print {
   .no-print { display: none !important; }
-  body { background: white !important; }
+  html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
   #a4-preview {
     box-shadow: none !important;
     margin: 0 !important;
-    width: 100% !important;
+    width: auto !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    font-size: 10pt;
+    line-height: 1.35;
   }
 }
 
