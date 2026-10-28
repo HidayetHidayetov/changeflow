@@ -33,6 +33,7 @@ export default function App() {
   const [glLoading, setGlLoading] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [lang, setLang] = useState<Lang>(() => loadLang());
+  const [zoom, setZoom] = useState(80);
   const [appVersion, setAppVersion] = useState('');
   const [updateInfo, setUpdateInfo] = useState<{ version: string; body?: string } | null>(null);
   const [updateMsg, setUpdateMsg] = useState('');
@@ -182,25 +183,31 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#F1F5F9] dark:bg-[#0A0E14] text-slate-900 dark:text-slate-100">
       {/* TopBar */}
-      <header className="no-print sticky top-0 z-10 border-b border-slate-200 dark:border-white/10 bg-white/90 dark:bg-[#0A0E14]/90 backdrop-blur px-4 py-2 flex items-center gap-3">
-        <img src="/app-logo.svg" alt="ChangeFlow" className="w-8 h-8 rounded-lg" />
-        <div>
-          <div className="font-bold leading-none">ChangeFlow</div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">{t(lang, 'tag')} • {form.id}</div>
+      <header className="no-print sticky top-0 z-10 border-b border-slate-200 dark:border-white/10 bg-white/90 dark:bg-[#0A0E14]/92 backdrop-blur">
+        <div className="px-4 py-2 flex items-center gap-3">
+          <img src="/app-logo.svg" alt="ChangeFlow" className="w-9 h-9 rounded-xl ring-1 ring-[#D1B180]/40" />
+          <div>
+            <div className="font-bold leading-none tracking-tight">ChangeFlow</div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400">{t(lang, 'tag')} • {form.id}</div>
+          </div>
+          {appVersion && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full border border-[#D1B180]/50 text-[#8a6d3f] dark:text-[#D1B180]">v{appVersion}</span>
+          )}
+          <div className="flex-1" />
+          <img src={orgLogo} alt="org" className="h-7 object-contain max-w-[140px]" title={form.orgName} />
+          <div className="flex rounded-lg border border-slate-300 dark:border-white/10 overflow-hidden text-sm">
+            <button onClick={() => switchLang('az')} className={`px-2 py-1.5 ${lang === 'az' ? 'bg-[#1D4ED8] text-white' : ''}`}>AZ</button>
+            <button onClick={() => switchLang('en')} className={`px-2 py-1.5 ${lang === 'en' ? 'bg-[#1D4ED8] text-white' : ''}`}>EN</button>
+          </div>
+          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10" title="Dark/Light">
+            {theme === 'dark' ? t(lang, 'light') : t(lang, 'dark')}
+          </button>
+          <button onClick={() => setSettingsOpen(true)} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10">{t(lang, 'settings')}</button>
+          <button onClick={handleNew} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10">{t(lang, 'newDoc')}</button>
+          <button onClick={handleExportDocx} className="btn-primary px-4 py-1.5 text-sm rounded-lg shadow-sm">{t(lang, 'wordBtn')}</button>
+          <button onClick={handlePrint} className="px-3 py-1.5 text-sm rounded-lg bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm">{t(lang, 'printBtn')}</button>
         </div>
-        <div className="flex-1" />
-        <img src={orgLogo} alt="org" className="h-7 object-contain max-w-[140px]" title={form.orgName} />
-        <div className="flex rounded-lg border border-slate-300 dark:border-white/10 overflow-hidden text-sm">
-          <button onClick={() => switchLang('az')} className={`px-2 py-1.5 ${lang === 'az' ? 'bg-[#1D4ED8] text-white' : ''}`}>AZ</button>
-          <button onClick={() => switchLang('en')} className={`px-2 py-1.5 ${lang === 'en' ? 'bg-[#1D4ED8] text-white' : ''}`}>EN</button>
-        </div>
-        <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10" title="Dark/Light">
-          {theme === 'dark' ? t(lang, 'light') : t(lang, 'dark')}
-        </button>
-        <button onClick={() => setSettingsOpen(true)} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10">{t(lang, 'settings')}</button>
-        <button onClick={handleNew} className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-white/10">{t(lang, 'newDoc')}</button>
-        <button onClick={handleExportDocx} className="btn-primary px-3 py-1.5 text-sm rounded-lg">{t(lang, 'wordBtn')}</button>
-        <button onClick={handlePrint} className="px-3 py-1.5 text-sm rounded-lg bg-slate-900 text-white dark:bg-white dark:text-slate-900">{t(lang, 'printBtn')}</button>
+        <div className="h-[2px] bg-[#D1B180]/60" />
       </header>
       <Settings
         open={settingsOpen}
@@ -241,11 +248,17 @@ export default function App() {
 
       <div className="flex flex-col lg:flex-row gap-4 p-4">
         {/* Form */}
-        <section className="no-print w-full lg:w-[480px] shrink-0 rounded-xl bg-white dark:bg-[#11161F] border border-slate-200 dark:border-white/10 p-4">
-          <div className="flex gap-1 mb-4 text-sm">
+        <section className="no-print w-full lg:w-[500px] shrink-0 rounded-2xl bg-white dark:bg-[#11161F] border border-slate-200 dark:border-white/10 p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/40">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="font-mono text-xs px-2 py-1 rounded-md bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">{form.id}</span>
+            <StatusBadge status={form.status} />
+            <div className="flex-1" />
+            <span className="text-xs text-slate-400">{form.date} {form.time}</span>
+          </div>
+          <div className="flex gap-1 mb-4 text-sm p-1 rounded-xl bg-slate-100 dark:bg-white/5">
             {(['esas', 'git', 'tesir', 'rollback'] as Tab[]).map((tb) => (
               <button key={tb} onClick={() => setTab(tb)}
-                className={`px-3 py-1.5 rounded-lg ${tab === tb ? 'bg-[#1D4ED8] text-white font-semibold' : 'bg-slate-100 dark:bg-white/5'}`}>
+                className={`seg-btn flex-1 px-3 py-2 rounded-lg ${tab === tb ? 'active bg-white dark:bg-white/10 shadow-sm font-semibold' : 'text-slate-500 dark:text-slate-400'}`}>
                 {tb === 'esas' ? t(lang, 'tabMain') : tb === 'git' ? t(lang, 'tabGit') : tb === 'tesir' ? t(lang, 'tabImpact') : 'Rollback'}
               </button>
             ))}
@@ -413,8 +426,19 @@ export default function App() {
         </section>
 
         {/* Preview */}
-        <section className="flex-1 flex justify-center overflow-auto">
-          <div id="a4-preview" className="shadow-xl p-[12mm] text-[10.5pt] leading-relaxed">
+        <section className="flex-1 flex flex-col min-w-0">
+          <div className="no-print flex items-center gap-2 mb-2 text-sm">
+            <span className="text-xs uppercase tracking-widest text-slate-400">A4 • {form.id}</span>
+            <div className="flex-1" />
+            {[60, 80, 100].map((z) => (
+              <button key={z} onClick={() => setZoom(z)}
+                className={`px-2 py-1 text-xs rounded-md border ${zoom === z ? 'border-[#D1B180] text-[#8a6d3f] dark:text-[#D1B180] font-semibold' : 'border-slate-300 dark:border-white/10 text-slate-500'}`}>
+                {z}%
+              </button>
+            ))}
+          </div>
+          <div className="flex-1 flex justify-center overflow-auto preview-dots rounded-2xl border border-slate-200 dark:border-white/10 p-4">
+            <div id="a4-preview" style={{ zoom: `${zoom}%` } as React.CSSProperties} className="shadow-2xl p-[12mm] text-[10.5pt] leading-relaxed h-fit">
             <div className="text-center font-bold text-[13pt] mb-1">DƏYİŞİKLİKLƏRİN İDARƏ EDİLMƏSİ BLANKI</div>
             <div className="flex items-center gap-4 border-b-2 border-black pb-2 mb-2">
               <img src={orgLogo} alt="org logo" className="h-11 object-contain max-w-[200px]" />
@@ -564,9 +588,24 @@ export default function App() {
               {form.id} | {form.orgName} | Səhifə 1/1
             </div>
           </div>
+          </div>
         </section>
       </div>
     </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    'Layihə': 'bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-300 border-slate-200 dark:border-white/10',
+    'Təsdiq gözləyir': 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800',
+    'Təsdiqlənib': 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800',
+    'İmtina': 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800',
+  };
+  return (
+    <span className={`text-xs px-2 py-1 rounded-full border font-medium ${map[status] ?? map['Layihə']}`}>
+      {status}
+    </span>
   );
 }
 
