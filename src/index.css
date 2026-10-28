@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  body { background: white !important; }
+  #a4-preview {
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+}
+
+#a4-preview {
+  width: 210mm;
+  min-height: 297mm;
+  background: white;
+  color: #0f172a;
+}
