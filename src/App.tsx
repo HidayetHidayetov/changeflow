@@ -228,7 +228,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] dark:bg-[#0A0E14] text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen print:min-h-0 bg-[#F1F5F9] dark:bg-[#0A0E14] text-slate-900 dark:text-slate-100">
       {/* TopBar */}
       <header className="no-print sticky top-0 z-10 border-b border-slate-200 dark:border-white/10 bg-white/90 dark:bg-[#0A0E14]/92 backdrop-blur">
         <div className="px-4 py-2 flex items-center gap-3">
@@ -311,7 +311,7 @@ export default function App() {
         </div>
       )}
 
-      <div className="flex flex-col lg:flex-row gap-4 p-4">
+      <div className="flex flex-col lg:flex-row gap-4 p-4 print:block print:p-0 print:gap-0">
         {/* Form */}
         <section className="no-print w-full lg:w-[500px] shrink-0 rounded-2xl bg-white dark:bg-[#11161F] border border-slate-200 dark:border-white/10 p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/40">
           <div className="flex items-center gap-2 mb-3">
@@ -491,7 +491,7 @@ export default function App() {
         </section>
 
         {/* Preview */}
-        <section className="flex-1 flex flex-col min-w-0">
+        <section className="flex-1 flex flex-col min-w-0 print:block print:overflow-visible">
           <div className="no-print flex items-center gap-2 mb-2 text-sm">
             <span className="text-xs uppercase tracking-widest text-slate-400">A4 • {form.id}</span>
             <div className="flex-1" />
@@ -502,7 +502,7 @@ export default function App() {
               </button>
             ))}
           </div>
-          <div className="flex-1 flex justify-center overflow-auto preview-dots rounded-2xl border border-slate-200 dark:border-white/10 p-4">
+          <div className="flex-1 flex justify-center overflow-auto preview-dots rounded-2xl border border-slate-200 dark:border-white/10 p-4 print:block print:border-0 print:p-0 print:rounded-none print:overflow-visible">
             <div id="a4-preview" style={{ zoom: `${zoom}%` } as React.CSSProperties} className="shadow-2xl p-[12mm] text-[10.5pt] leading-relaxed h-fit">
             <div className="text-center font-bold text-[13pt] mb-1">DƏYİŞİKLİKLƏRİN İDARƏ EDİLMƏSİ BLANKI</div>
             <div className="flex items-center gap-4 border-b-2 border-black pb-2 mb-2">

@@ -83,6 +83,7 @@ html.dark select option {
     margin: 0 !important;
     width: auto !important;
     min-height: auto !important;
+    height: auto !important;
     padding: 0 !important;
     font-size: 10pt;
     line-height: 1.35;
