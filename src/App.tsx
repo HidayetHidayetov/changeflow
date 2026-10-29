@@ -41,6 +41,9 @@ export default function App() {
   const [glStatus, setGlStatus] = useState('');
   const [glLoading, setGlLoading] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [histMeta, setHistMeta] = useState<Array<{ id: string; title: string; status: string; date: string }>>([]);
+  const [histQ, setHistQ] = useState('');
+  const [histStatus, setHistStatus] = useState('');
   const [profiles, setProfiles] = useState<ProjectProfile[]>(() => loadProfiles());
   const [lang, setLang] = useState<Lang>(() => loadLang());
   const [zoom, setZoom] = useState(80);
@@ -180,6 +183,22 @@ export default function App() {
   useEffect(() => {
     if (tab === 'tesir') setProfiles(loadProfiles());
   }, [tab]);
+
+  useEffect(() => {
+    if (tab !== 'jurnal') return;
+    (async () => {
+      const out: Array<{ id: string; title: string; status: string; date: string }> = [];
+      for (const id of history) {
+        try {
+          const d = (await loadDoc(id)) as ChangeRequest | null;
+          out.push({ id, title: d?.title ?? '', status: d?.status ?? '', date: d?.date ?? '' });
+        } catch {
+          out.push({ id, title: '', status: '', date: '' });
+        }
+      }
+      setHistMeta(out);
+    })();
+  }, [tab, history]);
 
   useEffect(() => {
     refreshHistory();
@@ -550,16 +569,53 @@ export default function App() {
                   </li>
                 ))}
               </ul>
-              {history.length > 0 && (
-                <div className="mt-4 text-sm">
-                  <b>{t(lang, 'historyTitle')}</b>
-                  <ul className="mt-1 max-h-32 overflow-auto border border-slate-200 dark:border-white/10 rounded-lg p-2">
-                    {history.map((h) => (
-                      <li key={h}><button className="text-[#4F8FF7] underline" onClick={() => openHistory(h)}>{h}</button></li>
-                    ))}
-                  </ul>
+              <div className="mt-4 text-sm">
+                <b>{t(lang, 'historyTitle')}</b>
+                <div className="flex gap-2 mt-2 mb-2">
+                  <input
+                    className={inputCls + ' !py-1.5'}
+                    value={histQ}
+                    onChange={(e) => setHistQ(e.target.value)}
+                    placeholder={t(lang, 'histSearch')}
+                  />
+                  <select className={inputCls + ' !py-1.5 !w-auto'} value={histStatus} onChange={(e) => setHistStatus(e.target.value)}>
+                    <option value="">{t(lang, 'histAll')}</option>
+                    <option value="Layihə">{t(lang, 'stDraft')}</option>
+                    <option value="Təsdiq gözləyir">{t(lang, 'stPending')}</option>
+                    <option value="Təsdiqlənib">{t(lang, 'stApproved')}</option>
+                    <option value="İmtina">{t(lang, 'stRejected')}</option>
+                  </select>
                 </div>
-              )}
+                {(() => {
+                  const q = histQ.trim().toLowerCase();
+                  const list = histMeta.filter(
+                    (m) =>
+                      (!histStatus || m.status === histStatus) &&
+                      (!q || m.id.toLowerCase().includes(q) || m.title.toLowerCase().includes(q)),
+                  );
+                  if (histMeta.length > 0 && list.length === 0) {
+                    return <p className="text-xs text-slate-500">—</p>;
+                  }
+                  return (
+                    <>
+                      <div className="text-xs text-slate-500 mb-1">
+                        {list.length} {t(lang, 'histFound')}
+                      </div>
+                      <ul className="max-h-48 overflow-auto border border-slate-200 dark:border-white/10 rounded-lg p-2 space-y-1">
+                        {list.map((m) => (
+                          <li key={m.id} className="flex items-center gap-2">
+                            <button className="text-[#4F8FF7] underline font-mono text-xs whitespace-nowrap" onClick={() => openHistory(m.id)}>
+                              {m.id}
+                            </button>
+                            <span className="truncate flex-1">{m.title}</span>
+                            {m.status && <StatusBadge status={m.status} />}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  );
+                })()}
+              </div>
             </>
           )}
         </section>
