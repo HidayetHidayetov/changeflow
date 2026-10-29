@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { mapState, toLocalDateTime } from '../gitlab';
+import { docHash, extractHash, qrPayload, verifyDoc } from '../verify';
 import { exportBackup, importBackup, listHistory, saveToHistory } from '../history';
 import { nextId, peekNextId, projectCode, pushEvent } from '../store';
 import { applyProfile, findProfile, normalizePath, type ProjectProfile } from '../profiles';
@@ -95,6 +96,38 @@ describe('profiles', () => {
     expect(u.system).toBe('Mənim');
     expect(u.subsystem).toBe('SUB');
     expect(u.testEnv).toBe('prod');
+  });
+});
+
+describe('verify', () => {
+  const base = {
+    id: 'EMIOS-142',
+    title: 'T',
+    project: 'P',
+    mrIid: '!142',
+    sourceBranch: 'a',
+    targetBranch: 'main',
+    commits: 'c',
+    description: 'd',
+    reason: 'r',
+    date: '2024-01-01',
+  };
+  it('hash sabitdir və 8 hex-dir', () => {
+    expect(docHash(base)).toMatch(/^[0-9a-f]{8}$/);
+    expect(docHash(base)).toBe(docHash(base));
+  });
+  it('qrPayload-da ID və MR var', () => {
+    const p = qrPayload({ ...base, mrUrl: 'https://x/1' }, 'abcd1234');
+    expect(p).toContain('EMIOS-142');
+    expect(p).toContain('https://x/1');
+  });
+  it('extractHash + verifyDoc', () => {
+    const h = docHash(base);
+    const withRec = { ...base, timeline: [{ at: 'x', kind: 'export-docx' as const, detail: `f.docx | #${h}` }] };
+    expect(extractHash(`f.docx | #${h}`)).toBe(h);
+    expect(verifyDoc(withRec).state).toBe('ok');
+    expect(verifyDoc({ ...base, timeline: [] }).state).toBe('no-record');
+    expect(verifyDoc({ ...base, title: 'X', timeline: withRec.timeline }).state).toBe('changed');
   });
 });
 

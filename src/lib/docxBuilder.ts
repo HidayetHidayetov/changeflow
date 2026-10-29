@@ -1,6 +1,7 @@
 import {
   AlignmentType,
   Document,
+  ImageRun,
   LevelFormat,
   Packer,
   Paragraph,
@@ -116,6 +117,14 @@ function span3Numbered(text: string): TableRow {
 }
 
 export async function buildDocxBlob(r: ChangeRequest): Promise<Blob> {
+  const { docHash, qrPayload, qrDataUrl } = await import('./verify');
+  const hash = docHash(r);
+  const qr = await qrDataUrl(
+    qrPayload(
+      { id: r.id, title: r.title, project: r.project, date: r.date, mrUrl: r.mrUrl, mrIid: r.mrIid },
+      hash,
+    ),
+  );
   const gitLines = [
     r.repoUrl,
     r.mrUrl && r.mrIid ? `${r.mrUrl} (${r.mrIid})` : r.mrUrl || r.mrIid,
@@ -321,6 +330,16 @@ export async function buildDocxBlob(r: ChangeRequest): Promise<Blob> {
             ],
           }),
           new Paragraph({ text: '' }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new ImageRun({ data: qr, transformation: { width: 110, height: 110 }, type: 'png' }),
+            ],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [new TextRun({ text: 'Skan et — MR linki və hash / Scan', size: 18, color: '404040' })],
+          }),
           new Paragraph({
             children: [new TextRun({ text: 'Sənəd jurnalı / Audit trail:', bold: true, size: 18 })],
           }),

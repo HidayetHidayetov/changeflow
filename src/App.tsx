@@ -4,6 +4,7 @@ import { loadConfig, nextId, peekNextId, projectCode, pushEvent, saveConfig } fr
 import { listHistory, loadDoc, saveToHistory } from './lib/history';
 import { fetchMR, loadGitLabConfig, saveGitLabConfig } from './lib/gitlab';
 import { applyProfile, findProfile, loadProfiles, type ProjectProfile } from './lib/profiles';
+import { docHash } from './lib/verify';
 import { isDesktop } from './lib/secrets';
 import Settings from './components/Settings';
 import { loadLang, saveLang, t, type Lang } from './lib/i18n';
@@ -44,6 +45,8 @@ export default function App() {
   const [histMeta, setHistMeta] = useState<Array<{ id: string; title: string; status: string; date: string }>>([]);
   const [histQ, setHistQ] = useState('');
   const [histStatus, setHistStatus] = useState('');
+  const [qrUrl, setQrUrl] = useState('');
+  const [verifyMsg, setVerifyMsg] = useState('');
   const [profiles, setProfiles] = useState<ProjectProfile[]>(() => loadProfiles());
   const [lang, setLang] = useState<Lang>(() => loadLang());
   const [zoom, setZoom] = useState(80);
@@ -161,7 +164,7 @@ export default function App() {
         if (!path) return;
         const { writeFile } = await import('@tauri-apps/plugin-fs');
         await writeFile(path, new Uint8Array(await blob.arrayBuffer()));
-        const updated = pushEvent(form, 'export-docx', path);
+        const updated = pushEvent(form, 'export-docx', `${path} | #${docHash(form)}`);
         setForm(updated);
         await saveToHistory(updated.id, updated);
         await refreshHistory();
@@ -173,7 +176,7 @@ export default function App() {
     }
     const { exportDocx } = await import('./lib/docxBuilder');
     await exportDocx(form);
-    const updated = pushEvent(form, 'export-docx', `${form.id}.docx`);
+    const updated = pushEvent(form, 'export-docx', `${form.id}.docx | #${docHash(form)}`);
     setForm(updated);
     await saveToHistory(updated.id, updated);
     await refreshHistory();
@@ -183,6 +186,28 @@ export default function App() {
   useEffect(() => {
     if (tab === 'tesir') setProfiles(loadProfiles());
   }, [tab]);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { docHash: h, qrPayload, qrDataUrl } = await import('./lib/verify');
+        const hash = h(form);
+        const url = await qrDataUrl(
+          qrPayload(
+            { id: form.id, title: form.title, project: form.project, date: form.date, mrUrl: form.mrUrl, mrIid: form.mrIid },
+            hash,
+          ),
+        );
+        if (alive) setQrUrl(url);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [form]);
 
   useEffect(() => {
     if (tab !== 'jurnal') return;
@@ -233,7 +258,7 @@ export default function App() {
 
   const handlePrint = async () => {
     if (!doValidate()) return;
-    const updated = pushEvent(form, 'print');
+    const updated = pushEvent(form, 'print', `#${docHash(form)}`);
     setForm(updated);
     await saveToHistory(updated.id, updated);
     await refreshHistory();
@@ -557,6 +582,25 @@ export default function App() {
 
           {tab === 'jurnal' && (
             <>
+              <div className="flex items-center gap-2 mb-2">
+                <button
+                  className="btn-primary px-3 py-1 text-sm rounded-lg"
+                  onClick={async () => {
+                    const { verifyDoc } = await import('./lib/verify');
+                    const v = verifyDoc(form);
+                    setVerifyMsg(
+                      v.state === 'ok'
+                        ? `${t(lang, 'verifyOk')} #${v.hash}`
+                        : v.state === 'changed'
+                          ? `${t(lang, 'verifyChanged')} (#${v.ref} → #${v.hash})`
+                          : t(lang, 'verifyNoExport'),
+                    );
+                  }}
+                >
+                  {t(lang, 'verifyBtn')}
+                </button>
+                {verifyMsg && <span className="text-xs text-slate-500">{verifyMsg}</span>}
+              </div>
               <b className="text-sm">{t(lang, 'journalTitle')}</b>
               {(form.timeline ?? []).length === 0 && (
                 <p className="text-xs text-slate-500 mt-2">{t(lang, 'journalEmpty')}</p>
@@ -779,9 +823,13 @@ export default function App() {
                 </tr>
               </tbody>
             </table>
-            <div className="mt-2 border border-black p-1 text-[9pt] text-slate-700">
-              <b>{t(lang, 'journalFooter')} / Audit trail:</b>{' '}
-              {(form.timeline ?? []).map((ev) => `${formatEventTime(ev.at)} — ${eventLabel(lang, ev.kind)}${ev.detail ? ` (${ev.detail})` : ''}`).join(' • ') || '—'}
+            <div className="mt-2 flex items-start gap-2 border border-black p-1">
+              {qrUrl && <img src={qrUrl} alt="QR" className="w-[92px] h-[92px] shrink-0" />}
+              <div className="text-[9pt] text-slate-700 flex-1">
+                <b>{t(lang, 'journalFooter')} / Audit trail:</b>{' '}
+                {(form.timeline ?? []).map((ev) => `${formatEventTime(ev.at)} — ${eventLabel(lang, ev.kind)}${ev.detail ? ` (${ev.detail})` : ''}`).join(' • ') || '—'}
+                <div className="text-slate-500">{t(lang, 'qrScan')}</div>
+              </div>
             </div>
             <div className="mt-1 text-center text-xs text-slate-500">
               {form.id} | {form.orgName} | Səhifə 1/1
