@@ -1,5 +1,12 @@
 export type ChangeType = 'Standard' | 'Normal' | 'Emergency';
 export type Level = 'Aşağı' | 'Orta' | 'Yüksək';
+export type TimelineKind = 'created' | 'fetch' | 'export-docx' | 'print' | 'opened';
+
+export interface TimelineEvent {
+  at: string;
+  kind: TimelineKind;
+  detail?: string;
+}
 
 export interface ChangeRequest {
   id: string;
@@ -41,6 +48,11 @@ export interface ChangeRequest {
   rollbackOwner: string;
   rollbackEta: string;
   orgName: string;
+  timeline: TimelineEvent[];
+}
+
+export function newEvent(kind: TimelineKind, detail?: string): TimelineEvent {
+  return { at: new Date().toISOString(), kind, detail };
 }
 
 export const emptyRequest = (id: string): ChangeRequest => ({
@@ -83,6 +95,7 @@ export const emptyRequest = (id: string): ChangeRequest => ({
   rollbackOwner: '',
   rollbackEta: '',
   orgName: 'Azerishiq OJSC',
+  timeline: [newEvent('created')],
 });
 
 import type { Lang } from './lib/i18n';

@@ -1,3 +1,6 @@
+import type { ChangeRequest, TimelineEvent, TimelineKind } from '../types';
+import { newEvent } from '../types';
+
 const COUNTER_KEY = 'changeflow.counter';
 const HISTORY_KEY = 'changeflow.history';
 const CONFIG_KEY = 'changeflow.config';
@@ -72,6 +75,11 @@ export function clearDraft(): void {
   try {
     localStorage.removeItem('changeflow.draft');
   } catch { /* ignore */ }
+}
+
+export function pushEvent(r: ChangeRequest, kind: TimelineKind, detail?: string): ChangeRequest {
+  const timeline: TimelineEvent[] = [...(r.timeline ?? []), newEvent(kind, detail)];
+  return { ...r, timeline };
 }
 
 /** GitLab layihə yolundan qısa kod: "a/b/emios-webapp" → "EMIOS-WEBAPP" */

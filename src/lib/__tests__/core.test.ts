@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { mapState, toLocalDateTime } from '../gitlab';
-import { nextId, peekNextId, projectCode } from '../store';
+import { nextId, peekNextId, projectCode, pushEvent } from '../store';
+import { emptyRequest } from '../../types';
 
 const mem: Record<string, string> = {};
 beforeEach(() => {
@@ -42,6 +43,20 @@ describe('projectCode', () => {
   it('son seqmenti götürür', () => expect(projectCode('programming-team/e-services/emios-webapp')).toBe('EMIOS-WEBAPP'));
   it('başdakı /-i təmizləyir', () => expect(projectCode('/a/b/emios')).toBe('EMIOS'));
   it('boş → PRJ', () => expect(projectCode('')).toBe('PRJ'));
+});
+
+describe('timeline', () => {
+  it('yeni sənəddə created hadisəsi var', () => {
+    const r = emptyRequest('CR-2026-0001');
+    expect(r.timeline).toHaveLength(1);
+    expect(r.timeline[0].kind).toBe('created');
+  });
+  it('pushEvent əlavə edir, köhnəni saxlayır', () => {
+    const r = emptyRequest('CR-2026-0001');
+    const u = pushEvent(pushEvent(r, 'fetch', 'MR 142'), 'print');
+    expect(u.timeline.map((e) => e.kind)).toEqual(['created', 'fetch', 'print']);
+    expect(u.timeline[1].detail).toBe('MR 142');
+  });
 });
 
 describe('numbering', () => {

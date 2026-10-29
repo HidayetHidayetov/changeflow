@@ -68,6 +68,29 @@ function numberedParas(text: string): Paragraph[] {
   );
 }
 
+function journalLine(r: ChangeRequest): string {
+  return (r.timeline ?? [])
+    .map((ev) => {
+      const d = new Date(ev.at);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const when = isNaN(d.getTime())
+        ? ev.at
+        : `${pad(d.getDate())}.${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      const what =
+        ev.kind === 'created'
+          ? 'yaradıldı'
+          : ev.kind === 'fetch'
+            ? 'MR-dən alındı'
+            : ev.kind === 'export-docx'
+              ? 'Word ixrac edildi'
+              : ev.kind === 'print'
+                ? 'çapa göndərildi'
+                : 'açıldı';
+      return `${when} — ${what}${ev.detail ? ` (${ev.detail})` : ''}`;
+    })
+    .join(' • ');
+}
+
 function sectionRow(title: string): TableRow {
   return new TableRow({
     children: [
@@ -296,6 +319,13 @@ export async function buildDocxBlob(r: ChangeRequest): Promise<Blob> {
                 children: [TD(''), TD('ƏLAVƏ MƏLUMAT TƏLƏB OLUNUR', VALUE), TD(''), TD(''), TD('')],
               }),
             ],
+          }),
+          new Paragraph({ text: '' }),
+          new Paragraph({
+            children: [new TextRun({ text: 'Sənəd jurnalı / Audit trail:', bold: true, size: 18 })],
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: journalLine(r) || '—', size: 18, color: '404040' })],
           }),
         ],
       },

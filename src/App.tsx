@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { emptyRequest, validate, type ChangeRequest } from './types';
-import { loadConfig, nextId, peekNextId, projectCode, saveConfig, saveToHistory, listHistory, loadDoc } from './lib/store';
+import { emptyRequest, validate, type ChangeRequest, type TimelineKind } from './types';
+import { loadConfig, nextId, peekNextId, projectCode, pushEvent, saveConfig, saveToHistory, listHistory, loadDoc } from './lib/store';
 import { fetchMR, loadGitLabConfig, saveGitLabConfig } from './lib/gitlab';
 import { isDesktop } from './lib/secrets';
 import Settings from './components/Settings';
 import { loadLang, saveLang, t, type Lang } from './lib/i18n';
 
-type Tab = 'esas' | 'git' | 'tesir' | 'rollback';
+type Tab = 'esas' | 'git' | 'tesir' | 'rollback' | 'jurnal';
 const DRAFT_KEY = 'changeflow.draft';
 
 const inputCls =
@@ -136,8 +136,6 @@ export default function App() {
 
   const handleExportDocx = async () => {
     if (!doValidate()) return;
-    saveToHistory(form.id, form);
-    setHistory(listHistory());
     if (isDesktop()) {
       try {
         const { buildDocxBlob } = await import('./lib/docxBuilder');
@@ -150,6 +148,10 @@ export default function App() {
         if (!path) return;
         const { writeFile } = await import('@tauri-apps/plugin-fs');
         await writeFile(path, new Uint8Array(await blob.arrayBuffer()));
+        const updated = pushEvent(form, 'export-docx', path);
+        setForm(updated);
+        saveToHistory(updated.id, updated);
+        setHistory(listHistory());
         setToast({ path });
         return;
       } catch {
@@ -158,6 +160,10 @@ export default function App() {
     }
     const { exportDocx } = await import('./lib/docxBuilder');
     await exportDocx(form);
+    const updated = pushEvent(form, 'export-docx', `${form.id}.docx`);
+    setForm(updated);
+    saveToHistory(updated.id, updated);
+    setHistory(listHistory());
     setToast({});
   };
 
@@ -189,9 +195,11 @@ export default function App() {
 
   const handlePrint = () => {
     if (!doValidate()) return;
-    saveToHistory(form.id, form);
+    const updated = pushEvent(form, 'print');
+    setForm(updated);
+    saveToHistory(updated.id, updated);
     setHistory(listHistory());
-    document.title = form.id;
+    document.title = updated.id;
     window.print();
   };
 
@@ -222,7 +230,8 @@ export default function App() {
   const openHistory = (id: string) => {
     const d = loadDoc(id) as ChangeRequest | null;
     if (d) {
-      setForm(d);
+      const withOpen = pushEvent({ ...d, timeline: d.timeline ?? [] }, 'opened', id);
+      setForm(withOpen);
       setErrors([]);
     }
   };
@@ -321,10 +330,10 @@ export default function App() {
             <span className="text-xs text-slate-400">{form.date} {form.time}</span>
           </div>
           <div className="flex gap-1 mb-4 text-sm p-1 rounded-xl bg-slate-100 dark:bg-white/5">
-            {(['esas', 'git', 'tesir', 'rollback'] as Tab[]).map((tb) => (
+            {(['esas', 'git', 'tesir', 'rollback', 'jurnal'] as Tab[]).map((tb) => (
               <button key={tb} onClick={() => setTab(tb)}
-                className={`seg-btn flex-1 px-3 py-2 rounded-lg ${tab === tb ? 'active bg-white dark:bg-white/10 shadow-sm font-semibold' : 'text-slate-500 dark:text-slate-400'}`}>
-                {tb === 'esas' ? t(lang, 'tabMain') : tb === 'git' ? t(lang, 'tabGit') : tb === 'tesir' ? t(lang, 'tabImpact') : 'Rollback'}
+                className={`seg-btn flex-1 px-2 py-2 rounded-lg ${tab === tb ? 'active bg-white dark:bg-white/10 shadow-sm font-semibold' : 'text-slate-500 dark:text-slate-400'}`}>
+                {tb === 'esas' ? t(lang, 'tabMain') : tb === 'git' ? t(lang, 'tabGit') : tb === 'tesir' ? t(lang, 'tabImpact') : tb === 'jurnal' ? t(lang, 'tabJournal') : 'Rollback'}
               </button>
             ))}
           </div>
@@ -408,21 +417,28 @@ export default function App() {
                         const info = await fetchMR(gl, form.mrIid);
                         const cleanIid = form.mrIid.replace(/^!/, '').trim();
                         const docId = `${projectCode(gl.project)}-${cleanIid}`;
-                        setForm((f) => ({
-                          ...f,
-                          id: docId,
-                          title: f.title || info.title,
-                          repoUrl: f.repoUrl || info.repoUrl,
-                          mrUrl: info.webUrl || f.mrUrl,
-                          sourceBranch: info.sourceBranch || f.sourceBranch,
-                          targetBranch: info.targetBranch || f.targetBranch,
-                          commits: info.commits || f.commits,
-                          diffStat: info.diffStat || f.diffStat,
-                          author: f.author || info.author,
-                          date: info.date || f.date,
-                          time: info.time || f.time,
-                          status: info.status || f.status,
-                        }));
+                        const filled = pushEvent(
+                          {
+                            ...form,
+                            id: docId,
+                            title: form.title || info.title,
+                            repoUrl: form.repoUrl || info.repoUrl,
+                            mrUrl: info.webUrl || form.mrUrl,
+                            sourceBranch: info.sourceBranch || form.sourceBranch,
+                            targetBranch: info.targetBranch || form.targetBranch,
+                            commits: info.commits || form.commits,
+                            diffStat: info.diffStat || form.diffStat,
+                            author: form.author || info.author,
+                            date: info.date || form.date,
+                            time: info.time || form.time,
+                            status: info.status || form.status,
+                          },
+                          'fetch',
+                          `MR ${cleanIid} (${gl.project})`,
+                        );
+                        setForm(filled);
+                        saveToHistory(filled.id, filled);
+                        setHistory(listHistory());
                         setGlStatus(`OK — ID: ${docId}, ${t(lang, 'okFetched')}`);
                       } catch (e) {
                         setGlStatus(`${t(lang, 'errFetch')}: ${e instanceof Error ? e.message : String(e)}`);
@@ -476,8 +492,25 @@ export default function App() {
                 <Field label="Bərpa vaxtı" en="ETA"><input className={inputCls} value={form.rollbackEta} onChange={(e) => set('rollbackEta', e.target.value)} /></Field>
               </div>
               <p className="text-xs text-slate-500 mt-2">{t(lang, 'draftNote')}</p>
+            </>
+          )}
+
+          {tab === 'jurnal' && (
+            <>
+              <b className="text-sm">{t(lang, 'journalTitle')}</b>
+              {(form.timeline ?? []).length === 0 && (
+                <p className="text-xs text-slate-500 mt-2">{t(lang, 'journalEmpty')}</p>
+              )}
+              <ul className="mt-2 space-y-1.5 text-sm max-h-64 overflow-auto">
+                {(form.timeline ?? []).map((ev, i) => (
+                  <li key={i} className="flex gap-2 items-baseline border-b border-slate-100 dark:border-white/5 pb-1.5">
+                    <span className="text-xs text-slate-400 whitespace-nowrap">{formatEventTime(ev.at)}</span>
+                    <span><b>{eventLabel(lang, ev.kind)}</b>{ev.detail ? ` — ${ev.detail}` : ''}</span>
+                  </li>
+                ))}
+              </ul>
               {history.length > 0 && (
-                <div className="mt-3 text-sm">
+                <div className="mt-4 text-sm">
                   <b>{t(lang, 'historyTitle')}</b>
                   <ul className="mt-1 max-h-32 overflow-auto border border-slate-200 dark:border-white/10 rounded-lg p-2">
                     {history.map((h) => (
@@ -649,7 +682,11 @@ export default function App() {
                 </tr>
               </tbody>
             </table>
-            <div className="mt-2 text-center text-xs text-slate-500">
+            <div className="mt-2 border border-black p-1 text-[9pt] text-slate-700">
+              <b>{t(lang, 'journalFooter')} / Audit trail:</b>{' '}
+              {(form.timeline ?? []).map((ev) => `${formatEventTime(ev.at)} — ${eventLabel(lang, ev.kind)}${ev.detail ? ` (${ev.detail})` : ''}`).join(' • ') || '—'}
+            </div>
+            <div className="mt-1 text-center text-xs text-slate-500">
               {form.id} | {form.orgName} | Səhifə 1/1
             </div>
           </div>
@@ -658,6 +695,23 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+function formatEventTime(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function eventLabel(lang: Lang, kind: TimelineKind): string {
+  switch (kind) {
+    case 'created': return t(lang, 'evCreated');
+    case 'fetch': return t(lang, 'evFetch');
+    case 'export-docx': return t(lang, 'evExport');
+    case 'print': return t(lang, 'evPrint');
+    case 'opened': return t(lang, 'evOpened');
+  }
 }
 
 function StatusBadge({ status }: { status: string }) {
