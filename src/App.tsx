@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { emptyRequest, validate, type ChangeRequest, type TimelineKind } from './types';
 import { loadConfig, nextId, peekNextId, projectCode, pushEvent, saveConfig, saveToHistory, listHistory, loadDoc } from './lib/store';
 import { fetchMR, loadGitLabConfig, saveGitLabConfig } from './lib/gitlab';
+import { applyProfile, findProfile, loadProfiles, type ProjectProfile } from './lib/profiles';
 import { isDesktop } from './lib/secrets';
 import Settings from './components/Settings';
 import { loadLang, saveLang, t, type Lang } from './lib/i18n';
@@ -32,6 +33,7 @@ export default function App() {
   const [glStatus, setGlStatus] = useState('');
   const [glLoading, setGlLoading] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profiles, setProfiles] = useState<ProjectProfile[]>(() => loadProfiles());
   const [lang, setLang] = useState<Lang>(() => loadLang());
   const [zoom, setZoom] = useState(80);
   const [appVersion, setAppVersion] = useState('');
@@ -166,6 +168,10 @@ export default function App() {
     setHistory(listHistory());
     setToast({});
   };
+
+  useEffect(() => {
+    if (tab === 'tesir') setProfiles(loadProfiles());
+  }, [tab]);
 
   useEffect(() => {
     if (!toast) return;
@@ -417,29 +423,29 @@ export default function App() {
                         const info = await fetchMR(gl, form.mrIid);
                         const cleanIid = form.mrIid.replace(/^!/, '').trim();
                         const docId = `${projectCode(gl.project)}-${cleanIid}`;
-                        const filled = pushEvent(
-                          {
-                            ...form,
-                            id: docId,
-                            title: form.title || info.title,
-                            repoUrl: form.repoUrl || info.repoUrl,
-                            mrUrl: info.webUrl || form.mrUrl,
-                            sourceBranch: info.sourceBranch || form.sourceBranch,
-                            targetBranch: info.targetBranch || form.targetBranch,
-                            commits: info.commits || form.commits,
-                            diffStat: info.diffStat || form.diffStat,
-                            author: form.author || info.author,
-                            date: info.date || form.date,
-                            time: info.time || form.time,
-                            status: info.status || form.status,
-                          },
-                          'fetch',
-                          `MR ${cleanIid} (${gl.project})`,
-                        );
+                        const base = {
+                          ...form,
+                          id: docId,
+                          title: form.title || info.title,
+                          repoUrl: form.repoUrl || info.repoUrl,
+                          mrUrl: info.webUrl || form.mrUrl,
+                          sourceBranch: info.sourceBranch || form.sourceBranch,
+                          targetBranch: info.targetBranch || form.targetBranch,
+                          commits: info.commits || form.commits,
+                          diffStat: info.diffStat || form.diffStat,
+                          author: form.author || info.author,
+                          date: info.date || form.date,
+                          time: info.time || form.time,
+                          status: info.status || form.status,
+                        };
+                        const prof = findProfile(loadProfiles(), gl.project);
+                        const withProf = prof ? applyProfile(base, prof) : base;
+                        const filled = pushEvent(withProf, 'fetch', `MR ${cleanIid} (${gl.project})`);
+                        setProfiles(loadProfiles());
                         setForm(filled);
                         saveToHistory(filled.id, filled);
                         setHistory(listHistory());
-                        setGlStatus(`OK — ID: ${docId}, ${t(lang, 'okFetched')}`);
+                        setGlStatus(`OK — ID: ${docId}, ${t(lang, 'okFetched')}${prof ? ` • ${t(lang, 'profApplied')}: ${prof.projectPath}` : ''}`);
                       } catch (e) {
                         setGlStatus(`${t(lang, 'errFetch')}: ${e instanceof Error ? e.message : String(e)}`);
                       } finally {
@@ -458,6 +464,28 @@ export default function App() {
 
           {tab === 'tesir' && (
             <>
+              {profiles.length > 0 && (
+                <Field label="Profil" en="Profile">
+                  <select
+                    className={inputCls}
+                    value=""
+                    onChange={(e) => {
+                      const p = profiles.find((x) => x.id === e.target.value);
+                      if (p) {
+                        const updated = pushEvent(applyProfile(form, p), 'fetch', `Profil: ${p.projectPath}`);
+                        setForm(updated);
+                        setGlStatus(`${t(lang, 'profApplied')}: ${p.projectPath}`);
+                        setTab('tesir');
+                      }
+                    }}
+                  >
+                    <option value="">{t(lang, 'profSelect')}</option>
+                    {profiles.map((p) => (
+                      <option key={p.id} value={p.id}>{p.projectPath}</option>
+                    ))}
+                  </select>
+                </Field>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <Field label="Sistem" en="System"><input className={inputCls} value={form.system} onChange={(e) => set('system', e.target.value)} /></Field>
                 <Field label="Alt sistem" en="Subsystem"><input className={inputCls} value={form.subsystem} onChange={(e) => set('subsystem', e.target.value)} /></Field>

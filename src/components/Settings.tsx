@@ -4,6 +4,7 @@ import type { GitLabConfig } from '../lib/gitlab';
 import { saveGitLabConfig, testConnection } from '../lib/gitlab';
 import { loadJiraConfig, saveJiraConfig } from '../lib/jira';
 import { getSecret, isDesktop, setSecret } from '../lib/secrets';
+import { loadProfiles, newProfileId, saveProfiles, type ProjectProfile } from '../lib/profiles';
 import { t, type Lang } from '../lib/i18n';
 
 const inputCls =
@@ -41,6 +42,8 @@ export default function Settings(props: {
   const [connMsg, setConnMsg] = useState('');
   const [connLoading, setConnLoading] = useState(false);
   const [backupMsg, setBackupMsg] = useState('');
+  const [profiles, setProfiles] = useState<ProjectProfile[]>(() => loadProfiles());
+  const [np, setNp] = useState({ projectPath: '', system: '', subsystem: '', modules: '', testEnv: 'stage' });
   const fileRef = useRef<HTMLInputElement>(null);
   const hydrated = useRef(false);
   useEffect(() => {
@@ -163,6 +166,63 @@ export default function Settings(props: {
           </button>
           {connMsg && <span className="text-xs text-slate-500 break-all">{connMsg}</span>}
         </div>
+
+        <H>{t(lang, 'sProfiles')}</H>
+        <p className="text-xs text-slate-500 mb-2">{t(lang, 'sProfHint')}</p>
+        {profiles.length === 0 && <p className="text-xs text-slate-500 mb-2">{t(lang, 'sProfEmpty')}</p>}
+        <ul className="space-y-1 mb-2 text-sm">
+          {profiles.map((p) => (
+            <li key={p.id} className="flex items-center gap-2 border border-slate-200 dark:border-white/10 rounded-lg px-2 py-1.5">
+              <div className="flex-1 min-w-0">
+                <div className="font-mono text-xs truncate">{p.projectPath}</div>
+                <div className="text-xs text-slate-500 truncate">{[p.system, p.subsystem, p.testEnv].filter(Boolean).join(' • ')}</div>
+              </div>
+              <button
+                className="text-xs text-red-600"
+                onClick={() => {
+                  const v = profiles.filter((x) => x.id !== p.id);
+                  setProfiles(v);
+                  saveProfiles(v);
+                }}
+              >
+                {t(lang, 'sProfDelete')}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="grid grid-cols-2 gap-2">
+          <F label={t(lang, 'sProject')}>
+            <input className={inputCls} value={np.projectPath} onChange={(e) => setNp({ ...np, projectPath: e.target.value })} placeholder="programming-team/e-services/emios" />
+          </F>
+          <F label={t(lang, 'fTestEnv')}>
+            <select className={inputCls} value={np.testEnv} onChange={(e) => setNp({ ...np, testEnv: e.target.value })}>
+              <option>dev</option><option>stage</option><option>prod</option>
+            </select>
+          </F>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <F label={t(lang, 'fSystem')}>
+            <input className={inputCls} value={np.system} onChange={(e) => setNp({ ...np, system: e.target.value })} />
+          </F>
+          <F label={t(lang, 'fSubsystem')}>
+            <input className={inputCls} value={np.subsystem} onChange={(e) => setNp({ ...np, subsystem: e.target.value })} />
+          </F>
+          <F label={t(lang, 'fModules')}>
+            <input className={inputCls} value={np.modules} onChange={(e) => setNp({ ...np, modules: e.target.value })} />
+          </F>
+        </div>
+        <button
+          className="btn-primary px-3 py-1.5 rounded-lg text-sm disabled:opacity-50"
+          disabled={!np.projectPath.trim()}
+          onClick={() => {
+            const v = [...profiles, { ...np, projectPath: np.projectPath.trim(), id: newProfileId() }];
+            setProfiles(v);
+            saveProfiles(v);
+            setNp({ projectPath: '', system: '', subsystem: '', modules: '', testEnv: 'stage' });
+          }}
+        >
+          {t(lang, 'sProfAdd')}
+        </button>
 
         <H>
           {t(lang, 'sJira')}{' '}

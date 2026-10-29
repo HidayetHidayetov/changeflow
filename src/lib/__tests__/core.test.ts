@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { mapState, toLocalDateTime } from '../gitlab';
 import { exportBackup, importBackup, listHistory, nextId, peekNextId, projectCode, pushEvent, saveToHistory } from '../store';
+import { applyProfile, findProfile, normalizePath, type ProjectProfile } from '../profiles';
 import { emptyRequest } from '../../types';
 
 const mem: Record<string, string> = {};
@@ -74,6 +75,25 @@ describe('backup', () => {
   it('yararsız JSON → ok:false', () => {
     expect(importBackup('xxx').ok).toBe(false);
     expect(importBackup('{"a":1}').ok).toBe(false);
+  });
+});
+
+describe('profiles', () => {
+  it('normalizePath + findProfile', () => {
+    const ps: ProjectProfile[] = [
+      { id: '1', projectPath: 'programming-team/e-services/emios', system: 'S', subsystem: 'A', modules: '', testEnv: 'stage' },
+    ];
+    expect(normalizePath('/A/B/')).toBe('a/b');
+    expect(findProfile(ps, '/programming-team/e-services/EMIOS')?.system).toBe('S');
+    expect(findProfile(ps, 'other/proj')).toBeUndefined();
+  });
+  it('applyProfile yalnız boş sahələri doldurur', () => {
+    const f = emptyRequest('CR-1');
+    const p: ProjectProfile = { id: '1', projectPath: 'x', system: 'SYS', subsystem: 'SUB', modules: 'M', testEnv: 'prod' };
+    const u = applyProfile({ ...f, system: 'Mənim' }, p);
+    expect(u.system).toBe('Mənim');
+    expect(u.subsystem).toBe('SUB');
+    expect(u.testEnv).toBe('prod');
   });
 });
 
