@@ -90,6 +90,39 @@ export function projectCode(projectPath: string): string {
   return code || 'PRJ';
 }
 
+export interface BackupData {
+  version: 1;
+  exportedAt: string;
+  docs: Array<{ id: string; doc: unknown }>;
+}
+
+export function exportBackup(): string {
+  const docs = listHistory().map((id) => ({ id, doc: loadDoc(id) })).filter((d) => d.doc);
+  const data: BackupData = { version: 1, exportedAt: new Date().toISOString(), docs };
+  return JSON.stringify(data, null, 2);
+}
+
+export function importBackup(json: string): { ok: boolean; count: number; error?: string } {
+  try {
+    const data = JSON.parse(json) as BackupData;
+    if (!data || !Array.isArray(data.docs)) return { ok: false, count: 0, error: 'bad-format' };
+    let count = 0;
+    for (const { id, doc } of data.docs) {
+      if (typeof id !== 'string' || !doc || typeof doc !== 'object') continue;
+      localStorage.setItem(`changeflow.doc.${id}`, JSON.stringify(doc));
+      count++;
+    }
+    const raw = localStorage.getItem(HISTORY_KEY);
+    const arr = raw ? (JSON.parse(raw) as string[]) : [];
+    const ids = data.docs.map((d) => d.id).filter((id) => typeof id === 'string');
+    const merged = [...ids.filter((id) => !arr.includes(id)), ...arr].slice(0, 100);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(merged));
+    return { ok: true, count };
+  } catch (e) {
+    return { ok: false, count: 0, error: e instanceof Error ? e.message : 'parse-error' };
+  }
+}
+
 export interface AppConfig {
   orgName: string;
   logoDataUrl: string;

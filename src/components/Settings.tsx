@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { clearDraft, clearHistory } from '../lib/store';
+import { clearDraft, clearHistory, exportBackup, importBackup } from '../lib/store';
 import type { GitLabConfig } from '../lib/gitlab';
-import { saveGitLabConfig } from '../lib/gitlab';
+import { saveGitLabConfig, testConnection } from '../lib/gitlab';
 import { loadJiraConfig, saveJiraConfig } from '../lib/jira';
 import { getSecret, isDesktop, setSecret } from '../lib/secrets';
 import { t, type Lang } from '../lib/i18n';
@@ -38,6 +38,10 @@ export default function Settings(props: {
   updateMsg: string;
 }) {
   const [jira, setJira] = useState(loadJiraConfig());
+  const [connMsg, setConnMsg] = useState('');
+  const [connLoading, setConnLoading] = useState(false);
+  const [backupMsg, setBackupMsg] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
   const hydrated = useRef(false);
   useEffect(() => {
     if (!props.open || hydrated.current || !isDesktop()) return;
@@ -60,6 +64,58 @@ export default function Settings(props: {
     if (patch.token !== undefined) setSecret('gitlab-token', patch.token);
   };
 
+  const doExportBackup = async () => {
+    const json = exportBackup();
+    const name = `changeflow-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    if (isDesktop()) {
+      try {
+        const { save } = await import('@tauri-apps/plugin-dialog');
+        const path = await save({ defaultPath: name, filters: [{ name: 'JSON', extensions: ['json'] }] });
+        if (!path) return;
+        const { writeFile } = await import('@tauri-apps/plugin-fs');
+        await writeFile(path, new TextEncoder().encode(json));
+        setBackupMsg(path);
+        return;
+      } catch {
+        /* fallback */
+      }
+    }
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    setBackupMsg(name);
+  };
+
+  const doImportBackup = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const r = importBackup(await file.text());
+      if (r.ok) {
+        props.onDataChange();
+        setBackupMsg(`${r.count} ${t(lang, 'sBackupOk')}`);
+      } else {
+        setBackupMsg(`${t(lang, 'sBackupFail')}: ${r.error ?? ''}`);
+      }
+    } catch {
+      setBackupMsg(t(lang, 'sBackupFail'));
+    }
+  };
+
+  const doTestConnection = async () => {
+    setConnLoading(true);
+    setConnMsg(t(lang, 'sTesting'));
+    try {
+      const r = await testConnection(props.gl);
+      setConnMsg(`${t(lang, 'sConnOk')}: ${r.user}${r.project ? ` • ${r.project}` : ''}`);
+    } catch (e) {
+      setConnMsg(`${t(lang, 'sConnFail')}: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setConnLoading(false);
+    }
+  };
   const setJr = (patch: Partial<typeof jira>) => {
     const v = { ...jira, ...patch };
     setJira(v);
@@ -101,6 +157,12 @@ export default function Settings(props: {
         <F label={t(lang, 'sProject')}>
           <input className={inputCls} value={props.gl.project} onChange={(e) => setGl({ project: e.target.value })} placeholder="programming-team/e-services/emios" />
         </F>
+        <div className="flex items-center gap-2 text-sm">
+          <button onClick={doTestConnection} disabled={connLoading} className="btn-primary px-3 py-1.5 rounded-lg disabled:opacity-50">
+            {connLoading ? t(lang, 'sTesting') : t(lang, 'sTestConn')}
+          </button>
+          {connMsg && <span className="text-xs text-slate-500 break-all">{connMsg}</span>}
+        </div>
 
         <H>
           {t(lang, 'sJira')}{' '}
@@ -125,6 +187,16 @@ export default function Settings(props: {
         <p className="text-xs text-slate-500">{t(lang, 'sJNote')}</p>
 
         <H>{t(lang, 'sData')}</H>
+        <div className="flex flex-wrap gap-2 text-sm">
+          <button onClick={doExportBackup} className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-white/10">
+            {t(lang, 'sExportAll')}
+          </button>
+          <label className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-white/10 cursor-pointer">
+            {t(lang, 'sImport')}
+            <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => { doImportBackup(e.target.files?.[0]); e.target.value = ''; }} />
+          </label>
+        </div>
+        {backupMsg && <p className="text-xs text-slate-500 mt-1 break-all">{backupMsg}</p>}
         <F label={t(lang, 'sVersion')}>
           <div className="flex items-center gap-2">
             <span className="text-sm">{props.version || '…'}</span>

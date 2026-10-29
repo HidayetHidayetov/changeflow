@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { mapState, toLocalDateTime } from '../gitlab';
-import { nextId, peekNextId, projectCode, pushEvent } from '../store';
+import { exportBackup, importBackup, listHistory, nextId, peekNextId, projectCode, pushEvent, saveToHistory } from '../store';
 import { emptyRequest } from '../../types';
 
 const mem: Record<string, string> = {};
@@ -56,6 +56,24 @@ describe('timeline', () => {
     const u = pushEvent(pushEvent(r, 'fetch', 'MR 142'), 'print');
     expect(u.timeline.map((e) => e.kind)).toEqual(['created', 'fetch', 'print']);
     expect(u.timeline[1].detail).toBe('MR 142');
+  });
+});
+
+describe('backup', () => {
+  it('ixrac → idxal round-trip', () => {
+    saveToHistory('CR-2026-0001', { id: 'CR-2026-0001', title: 'Test' });
+    saveToHistory('CR-2026-0002', { id: 'CR-2026-0002', title: 'Test 2' });
+    const json = exportBackup();
+    expect(JSON.parse(json).docs).toHaveLength(2);
+    (globalThis as unknown as { localStorage: Storage }).localStorage.clear();
+    expect(listHistory()).toHaveLength(0);
+    const r = importBackup(json);
+    expect(r).toEqual({ ok: true, count: 2 });
+    expect(listHistory()).toContain('CR-2026-0001');
+  });
+  it('yararsız JSON → ok:false', () => {
+    expect(importBackup('xxx').ok).toBe(false);
+    expect(importBackup('{"a":1}').ok).toBe(false);
   });
 });
 

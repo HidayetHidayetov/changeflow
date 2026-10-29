@@ -76,6 +76,18 @@ export function mapState(state: string, mergedAt: string): string {
   return 'Təsdiq gözləyir';
 }
 
+export async function testConnection(cfg: GitLabConfig): Promise<{ user: string; project?: string }> {
+  const base = apiBase(cfg.baseUrl);
+  const me = (await httpGet(`${base}/user`, cfg.token)) as Record<string, unknown>;
+  let project: string | undefined;
+  if (cfg.project.trim()) {
+    const pid = encodeURIComponent(cfg.project.replace(/^\/+/, '').replace(/\/+$/, ''));
+    const p = (await httpGet(`${base}/projects/${pid}`, cfg.token)) as Record<string, unknown>;
+    project = String(p.name_with_namespace ?? p.name ?? '');
+  }
+  return { user: String(me.name ?? me.username ?? ''), project };
+}
+
 export async function fetchMR(cfg: GitLabConfig, iid: string): Promise<MRInfo> {
   const base = apiBase(cfg.baseUrl);
   const cleanProject = cfg.project.replace(/^\/+/, '').replace(/\/+$/, '');
