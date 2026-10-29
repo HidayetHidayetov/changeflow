@@ -14,6 +14,7 @@
     "http:default",
     "stronghold:default",
     "updater:default",
+    "sql:default",
     {
       "identifier": "fs:allow-read-file",
       "allow": [{ "path": "$APPDATA/**" }]

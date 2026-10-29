@@ -1,14 +1,17 @@
 {
   "name": "changeflow",
   "private": true,
-  "version": "0.1.14",
+  "version": "0.1.15",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "test": "vitest run"
+    "test": "vitest run",
+    "bump": "node scripts/bump.mjs patch",
+    "bump:minor": "node scripts/bump.mjs minor",
+    "bump:major": "node scripts/bump.mjs major"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -28,6 +31,7 @@
     "@tauri-apps/plugin-fs": "^2.7.1",
     "@tauri-apps/plugin-http": "^2.8.3",
     "@tauri-apps/plugin-opener": "^2.7.2",
+    "@tauri-apps/plugin-sql": "^2.6.0",
     "@tauri-apps/plugin-store": "^2.5.0",
     "@tauri-apps/plugin-stronghold": "^2.4.0",
     "@tauri-apps/plugin-updater": "^2.14.1",

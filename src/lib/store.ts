@@ -2,7 +2,6 @@ import type { ChangeRequest, TimelineEvent, TimelineKind } from '../types';
 import { newEvent } from '../types';
 
 const COUNTER_KEY = 'changeflow.counter';
-const HISTORY_KEY = 'changeflow.history';
 const CONFIG_KEY = 'changeflow.config';
 
 export function nextId(): string {
@@ -33,44 +32,6 @@ export function peekNextId(): string {
   return `CR-${year}-${String(last + 1).padStart(4, '0')}`;
 }
 
-export function saveToHistory(id: string, data: unknown): void {
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY);
-    const arr = raw ? (JSON.parse(raw) as string[]) : [];
-    if (!arr.includes(id)) {
-      arr.unshift(id);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(arr.slice(0, 100)));
-    }
-    localStorage.setItem(`changeflow.doc.${id}`, JSON.stringify(data));
-  } catch { /* ignore */ }
-}
-
-export function loadDoc(id: string): unknown | null {
-  try {
-    const raw = localStorage.getItem(`changeflow.doc.${id}`);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-export function listHistory(): string[] {
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function clearHistory(): void {
-  try {
-    const arr = listHistory();
-    for (const id of arr) localStorage.removeItem(`changeflow.doc.${id}`);
-    localStorage.removeItem(HISTORY_KEY);
-  } catch { /* ignore */ }
-}
-
 export function clearDraft(): void {
   try {
     localStorage.removeItem('changeflow.draft');
@@ -88,39 +49,6 @@ export function projectCode(projectPath: string): string {
   const last = clean.split('/').pop() ?? clean;
   const code = last.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   return code || 'PRJ';
-}
-
-export interface BackupData {
-  version: 1;
-  exportedAt: string;
-  docs: Array<{ id: string; doc: unknown }>;
-}
-
-export function exportBackup(): string {
-  const docs = listHistory().map((id) => ({ id, doc: loadDoc(id) })).filter((d) => d.doc);
-  const data: BackupData = { version: 1, exportedAt: new Date().toISOString(), docs };
-  return JSON.stringify(data, null, 2);
-}
-
-export function importBackup(json: string): { ok: boolean; count: number; error?: string } {
-  try {
-    const data = JSON.parse(json) as BackupData;
-    if (!data || !Array.isArray(data.docs)) return { ok: false, count: 0, error: 'bad-format' };
-    let count = 0;
-    for (const { id, doc } of data.docs) {
-      if (typeof id !== 'string' || !doc || typeof doc !== 'object') continue;
-      localStorage.setItem(`changeflow.doc.${id}`, JSON.stringify(doc));
-      count++;
-    }
-    const raw = localStorage.getItem(HISTORY_KEY);
-    const arr = raw ? (JSON.parse(raw) as string[]) : [];
-    const ids = data.docs.map((d) => d.id).filter((id) => typeof id === 'string');
-    const merged = [...ids.filter((id) => !arr.includes(id)), ...arr].slice(0, 100);
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(merged));
-    return { ok: true, count };
-  } catch (e) {
-    return { ok: false, count: 0, error: e instanceof Error ? e.message : 'parse-error' };
-  }
 }
 
 export interface AppConfig {

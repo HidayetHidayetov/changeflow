@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { emptyRequest, validate, type ChangeRequest, type TimelineKind } from './types';
-import { loadConfig, nextId, peekNextId, projectCode, pushEvent, saveConfig, saveToHistory, listHistory, loadDoc } from './lib/store';
+import { loadConfig, nextId, peekNextId, projectCode, pushEvent, saveConfig } from './lib/store';
+import { listHistory, loadDoc, saveToHistory } from './lib/history';
 import { fetchMR, loadGitLabConfig, saveGitLabConfig } from './lib/gitlab';
 import { applyProfile, findProfile, loadProfiles, type ProjectProfile } from './lib/profiles';
 import { isDesktop } from './lib/secrets';
@@ -27,7 +28,14 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('esas');
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [errors, setErrors] = useState<string[]>([]);
-  const [history, setHistory] = useState<string[]>(() => listHistory());
+  const [history, setHistory] = useState<string[]>([]);
+  const refreshHistory = async () => {
+    try {
+      setHistory(await listHistory());
+    } catch {
+      /* ignore */
+    }
+  };
   const [cfg, setCfg] = useState(() => loadConfig());
   const [gl, setGl] = useState(() => loadGitLabConfig());
   const [glStatus, setGlStatus] = useState('');
@@ -152,8 +160,8 @@ export default function App() {
         await writeFile(path, new Uint8Array(await blob.arrayBuffer()));
         const updated = pushEvent(form, 'export-docx', path);
         setForm(updated);
-        saveToHistory(updated.id, updated);
-        setHistory(listHistory());
+        await saveToHistory(updated.id, updated);
+        await refreshHistory();
         setToast({ path });
         return;
       } catch {
@@ -164,14 +172,19 @@ export default function App() {
     await exportDocx(form);
     const updated = pushEvent(form, 'export-docx', `${form.id}.docx`);
     setForm(updated);
-    saveToHistory(updated.id, updated);
-    setHistory(listHistory());
+    await saveToHistory(updated.id, updated);
+    await refreshHistory();
     setToast({});
   };
 
   useEffect(() => {
     if (tab === 'tesir') setProfiles(loadProfiles());
   }, [tab]);
+
+  useEffect(() => {
+    refreshHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -199,12 +212,12 @@ export default function App() {
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!doValidate()) return;
     const updated = pushEvent(form, 'print');
     setForm(updated);
-    saveToHistory(updated.id, updated);
-    setHistory(listHistory());
+    await saveToHistory(updated.id, updated);
+    await refreshHistory();
     document.title = updated.id;
     window.print();
   };
@@ -233,8 +246,8 @@ export default function App() {
     setCfg(c);
   };
 
-  const openHistory = (id: string) => {
-    const d = loadDoc(id) as ChangeRequest | null;
+  const openHistory = async (id: string) => {
+    const d = (await loadDoc(id)) as ChangeRequest | null;
     if (d) {
       const withOpen = pushEvent({ ...d, timeline: d.timeline ?? [] }, 'opened', id);
       setForm(withOpen);
@@ -286,7 +299,7 @@ export default function App() {
         onLogoReset={resetLogo}
         gl={gl}
         onGl={setGl}
-        onDataChange={() => setHistory(listHistory())}
+        onDataChange={() => { void refreshHistory(); }}
         version={appVersion}
         onCheckUpdate={() => runUpdateCheck(false)}
         updateMsg={updateMsg}
@@ -443,8 +456,8 @@ export default function App() {
                         const filled = pushEvent(withProf, 'fetch', `MR ${cleanIid} (${gl.project})`);
                         setProfiles(loadProfiles());
                         setForm(filled);
-                        saveToHistory(filled.id, filled);
-                        setHistory(listHistory());
+                        await saveToHistory(filled.id, filled);
+                        await refreshHistory();
                         setGlStatus(`OK — ID: ${docId}, ${t(lang, 'okFetched')}${prof ? ` • ${t(lang, 'profApplied')}: ${prof.projectPath}` : ''}`);
                       } catch (e) {
                         setGlStatus(`${t(lang, 'errFetch')}: ${e instanceof Error ? e.message : String(e)}`);

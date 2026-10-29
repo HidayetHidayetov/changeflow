@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { clearDraft, clearHistory, exportBackup, importBackup } from '../lib/store';
+import { clearDraft } from '../lib/store';
+import { clearHistory, exportBackup, importBackup } from '../lib/history';
 import type { GitLabConfig } from '../lib/gitlab';
 import { saveGitLabConfig, testConnection } from '../lib/gitlab';
 import { loadJiraConfig, saveJiraConfig } from '../lib/jira';
@@ -68,7 +69,7 @@ export default function Settings(props: {
   };
 
   const doExportBackup = async () => {
-    const json = exportBackup();
+    const json = await exportBackup();
     const name = `changeflow-backup-${new Date().toISOString().slice(0, 10)}.json`;
     if (isDesktop()) {
       try {
@@ -95,7 +96,7 @@ export default function Settings(props: {
   const doImportBackup = async (file: File | undefined) => {
     if (!file) return;
     try {
-      const r = importBackup(await file.text());
+      const r = await importBackup(await file.text());
       if (r.ok) {
         props.onDataChange();
         setBackupMsg(`${r.count} ${t(lang, 'sBackupOk')}`);
@@ -267,9 +268,9 @@ export default function Settings(props: {
         <div className="flex gap-2 text-sm">
           <button
             className="px-3 py-1.5 rounded-lg border border-red-300 text-red-600"
-            onClick={() => {
+            onClick={async () => {
               if (confirm(t(lang, 'sConfirmH'))) {
-                clearHistory();
+                await clearHistory();
                 props.onDataChange();
               }
             }}
